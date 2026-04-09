@@ -221,29 +221,40 @@ GRANT ALL PRIVILEGES ON DATABASE loopgame TO loopgame_user;
 \q</code></pre>
       </div>
 
-      <h2>8. 環境変数ファイルを作る</h2>
+      <h2>8. Supabase Auth を用意する</h2>
       <div class="step">
         <div class="step-title">STEP 7</div>
+        <p>Supabase ダッシュボードでプロジェクトを作成し、Authentication を有効にします。</p>
+        <p>使うのは Project URL / anon public key / service_role secret key の3つです。</p>
+        <p>必要なら Authentication &gt; Providers &gt; Email でメールログインを ON にします。</p>
+      </div>
+
+      <h2>9. 環境変数ファイルを作る</h2>
+      <div class="step">
+        <div class="step-title">STEP 8</div>
         <p><code>.env</code> ファイルを作ります。</p>
         <pre><code>nano /root/loopgame/.env</code></pre>
         <p>中身の例:</p>
         <pre><code>DATABASE_URL=postgresql://loopgame_user:強いパスワード@localhost:5432/loopgame
-JWT_SECRET=長くてランダムな秘密文字列
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_ANON_KEY=あなたのanonキー
+SUPABASE_SERVICE_ROLE_KEY=あなたのservice_roleキー
 PORT=3000</code></pre>
+        <p><code>SUPABASE_SERVICE_ROLE_KEY</code> はサーバー側だけで使います。公開しないでください。</p>
       </div>
 
-      <h2>9. アプリを起動する</h2>
+      <h2>10. アプリを起動する</h2>
       <div class="step">
-        <div class="step-title">STEP 8</div>
+        <div class="step-title">STEP 9</div>
         <p>まず動作確認として起動します。</p>
         <pre><code>cd /root/loopgame
 npm start</code></pre>
         <p>正常なら <code>Loopgame server listening on 3000</code> のような表示が出ます。</p>
       </div>
 
-      <h2>10. Nginx で外部公開する</h2>
+      <h2>11. Nginx で外部公開する</h2>
       <div class="step">
-        <div class="step-title">STEP 9</div>
+        <div class="step-title">STEP 10</div>
         <p>Nginx の設定ファイルを作ります。</p>
         <pre><code>nano /etc/nginx/sites-available/loopgame</code></pre>
         <p>中身の例:</p>
@@ -266,9 +277,9 @@ nginx -t
 systemctl restart nginx</code></pre>
       </div>
 
-      <h2>11. 本番では PM2 などで常駐化する</h2>
+      <h2>12. 本番では PM2 などで常駐化する</h2>
       <div class="step">
-        <div class="step-title">STEP 10</div>
+        <div class="step-title">STEP 11</div>
         <pre><code>npm install -g pm2
 cd /root/loopgame
 pm2 start server.js --name loopgame
@@ -276,21 +287,23 @@ pm2 save
 pm2 startup</code></pre>
       </div>
 
-      <h2>12. Stripe はどうつなぐか</h2>
+      <h2>13. Stripe はどうつなぐか</h2>
       <div class="panel">
         <ul>
           <li>決済処理は Stripe Checkout を使う</li>
           <li>決済成功は Stripe webhook で受ける</li>
           <li>保存データは PostgreSQL に保存する</li>
+          <li>ログインだけ Supabase Auth を使う</li>
           <li>カード情報は自前で持たない</li>
         </ul>
       </div>
 
-      <h2>13. 最後にやること</h2>
+      <h2>14. 最後にやること</h2>
       <ul>
         <li>独自ドメインを取得したら Nginx の <code>server_name</code> を変える</li>
         <li>SSL は Let’s Encrypt で入れる</li>
         <li>DB の定期バックアップを設定する</li>
+        <li>Supabase 側のメール確認設定を確認する</li>
         <li>Stripe webhook の署名検証を入れる</li>
       </ul>
 

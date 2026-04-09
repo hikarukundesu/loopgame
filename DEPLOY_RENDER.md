@@ -3,19 +3,19 @@
 ## What this setup does
 
 - Serves the game and API from one Render web service
-- Stores user accounts and save data in PostgreSQL
+- Uses Supabase Auth for sign up / login
+- Stores game save data in PostgreSQL
 - Lets players log in on another device and continue from the same save
 
 ## Files added
 
-- `server.js`: Express API + static hosting
+- `server.js`: Express API + static hosting + Supabase token verification
 - `package.json`: Node dependencies and start script
 - `render.yaml`: Render Blueprint for web service + Postgres
 
 ## API endpoints
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
+- `GET /api/config`
 - `GET /api/auth/me`
 - `GET /api/save`
 - `PUT /api/save`
@@ -30,13 +30,13 @@
 ## Notes
 
 - The frontend keeps `localStorage` save data as a local fallback.
-- After login, the game loads the user's cloud save if one exists.
+- After Supabase login, the game loads the user's cloud save if one exists.
 - Future saves are written locally and synced to the API automatically.
-- Usernames are normalized to lowercase on the backend.
+- Save data is stored in PostgreSQL, while authentication is delegated to Supabase.
 
 ## Recommended next steps before release
 
 - Add password reset flow
-- Add email-based account recovery
+- Decide whether to require email confirmation in Supabase Auth
 - Add a visible "last synced" timestamp in the account modal
-- Add server-side rate limiting for auth routes
+- Add server-side rate limiting for save routes

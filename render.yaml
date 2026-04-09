@@ -10,8 +10,12 @@ services:
         fromDatabase:
           name: loopgame-db
           property: connectionString
-      - key: JWT_SECRET
-        generateValue: true
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
 
 databases:
   - name: loopgame-db

@@ -508,10 +508,10 @@
                 </div>
                 <button id="close-account-button" class="account-close-button" type="button">閉じる</button>
               </div>
-              <p id="account-status-text" class="account-status-text">Render 上の保存データに接続していません。</p>
+              <p id="account-status-text" class="account-status-text">Supabase ログインに接続していません。</p>
               <label class="account-field">
-                <span>ユーザー名</span>
-                <input id="account-username-input" type="text" maxlength="24" autocomplete="username" placeholder="player01" />
+                <span>メールアドレス</span>
+                <input id="account-email-input" type="email" maxlength="120" autocomplete="email" placeholder="player@example.com" />
               </label>
               <label class="account-field">
                 <span>パスワード</span>
@@ -523,7 +523,7 @@
                 <button id="account-sync-button" class="account-action-button ghost" type="button">今すぐ同期</button>
                 <button id="account-logout-button" class="account-action-button danger" type="button">ログアウト</button>
               </div>
-              <small class="account-note">ログイン後は進行状況をクラウド保存し、別端末でも続きから遊べます。</small>
+              <small class="account-note">Supabase でログイン後、進行状況をクラウド保存し、別端末でも続きから遊べます。</small>
             </div>
           </section>
           <div id="toast" class="toast"></div>
@@ -534,6 +534,7 @@
       </section>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
   </body>
 </html>

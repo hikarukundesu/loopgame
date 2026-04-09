@@ -93,7 +93,7 @@ const accountButton = document.getElementById("account-button");
 const accountOverlay = document.getElementById("account-overlay");
 const closeAccountButton = document.getElementById("close-account-button");
 const accountStatusText = document.getElementById("account-status-text");
-const accountUsernameInput = document.getElementById("account-username-input");
+const accountEmailInput = document.getElementById("account-email-input");
 const accountPasswordInput = document.getElementById("account-password-input");
 const accountLoginButton = document.getElementById("account-login-button");
 const accountRegisterButton = document.getElementById("account-register-button");
@@ -269,8 +269,8 @@ function drawParticles() {
 
 // ====== SAVE / LOAD ======
 const SAVE_KEY = "nightdelivery_v1";
-const AUTH_KEY = "nightdelivery_auth_v1";
 const API_BASE = "/api";
+let supabaseClient = null;
 
 function saveGame() {
   const snapshot = getSaveSnapshot();
@@ -330,37 +330,47 @@ function loadGame() {
   }
 }
 
-function saveAuthSession() {
-  try {
-    localStorage.setItem(
-      AUTH_KEY,
-      JSON.stringify({
-        token: gameState.cloud.token,
-        username: gameState.cloud.username,
-      })
-    );
-  } catch (_) {}
-}
-
-function loadAuthSession() {
-  try {
-    const raw = localStorage.getItem(AUTH_KEY);
-    if (!raw) {
-      return;
-    }
-    const data = JSON.parse(raw);
-    gameState.cloud.token = data.token || null;
-    gameState.cloud.username = data.username || null;
-  } catch (_) {}
-}
-
 function clearAuthSession() {
   gameState.cloud.token = null;
   gameState.cloud.username = null;
   gameState.cloud.saveUpdatedAt = null;
+  gameState.cloud.statusMessage = null;
+}
+
+async function initializeSupabaseAuth() {
   try {
-    localStorage.removeItem(AUTH_KEY);
-  } catch (_) {}
+    gameState.cloud.statusMessage = null;
+    const response = await fetch(`${API_BASE}/config`);
+    const config = await response.json();
+    if (!response.ok || !config.supabaseUrl || !config.supabaseAnonKey) {
+      throw new Error("Supabase 設定を読み込めませんでした");
+    }
+    supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+    gameState.cloud.isReady = true;
+    const { data } = await supabaseClient.auth.getSession();
+    applySupabaseSession(data.session || null);
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      applySupabaseSession(session || null);
+    });
+    if (gameState.cloud.token) {
+      await pullCloudSave(false);
+    }
+  } catch (error) {
+    gameState.cloud.isReady = true;
+    gameState.cloud.statusMessage = error.message || "Supabase 初期化に失敗しました。";
+    updateAccountUi();
+  }
+}
+
+function applySupabaseSession(session) {
+  gameState.cloud.token = session?.access_token || null;
+  gameState.cloud.username = session?.user?.email || null;
+  if (!session) {
+    gameState.cloud.saveUpdatedAt = null;
+  } else {
+    gameState.cloud.statusMessage = null;
+  }
+  updateAccountUi();
 }
 
 function setAccountOverlayOpen(open) {
@@ -398,8 +408,14 @@ function updateAccountUi() {
     setAccountStatus(
       `${gameState.cloud.username} でログイン中。${gameState.cloud.saveUpdatedAt ? "クラウド保存に接続済み。" : "ログイン済み、まだ同期前です。"}`
     );
+  } else if (gameState.cloud.statusMessage) {
+    setAccountStatus(gameState.cloud.statusMessage);
   } else {
-    setAccountStatus("Render 上の保存データに接続していません。");
+    setAccountStatus(
+      gameState.cloud.isReady
+        ? "Supabase でログインしてクラウド保存を使えます。"
+        : "Supabase を初期化しています。"
+    );
   }
 }
 
@@ -436,7 +452,6 @@ async function pushCloudSave(snapshot = getSaveSnapshot(), silent = true) {
       body: { saveData: snapshot },
     });
     gameState.cloud.saveUpdatedAt = result.updatedAt || new Date().toISOString();
-    saveAuthSession();
     updateAccountUi();
     if (!silent) {
       showToast("クラウド保存を更新しました");
@@ -520,31 +535,53 @@ async function pullCloudSave(showToastOnSuccess = false) {
 }
 
 async function submitAccountForm(mode) {
-  const username = accountUsernameInput?.value.trim();
+  const email = accountEmailInput?.value.trim();
   const password = accountPasswordInput?.value || "";
 
-  if (!username || password.length < 8) {
-    showToast("ユーザー名と8文字以上のパスワードを入力してください");
+  if (!supabaseClient) {
+    showToast("Supabase の初期化がまだ完了していません");
+    return;
+  }
+  if (!email || password.length < 8) {
+    showToast("メールアドレスと8文字以上のパスワードを入力してください");
     return;
   }
 
   try {
     gameState.cloud.isSyncing = true;
     updateAccountUi();
-    const result = await apiRequest(`/auth/${mode}`, {
-      method: "POST",
-      body: { username, password },
-    });
-    gameState.cloud.token = result.token;
-    gameState.cloud.username = result.username;
-    saveAuthSession();
-    updateAccountUi();
-    await pullCloudSave(false);
-    if (!result.hasSave) {
-      await pushCloudSave(getSaveSnapshot(), true);
+    let authResult;
+    if (mode === "register") {
+      authResult = await supabaseClient.auth.signUp({ email, password });
+    } else {
+      authResult = await supabaseClient.auth.signInWithPassword({ email, password });
     }
-    setAccountStatus(`${result.username} でクラウド同期を開始しました。`);
-    showToast(mode === "register" ? "アカウントを作成しました" : "ログインしました");
+    if (authResult.error) {
+      throw authResult.error;
+    }
+
+    const session = authResult.data?.session || null;
+    applySupabaseSession(session);
+    updateAccountUi();
+    if (session) {
+      const me = await apiRequest("/auth/me");
+      await pullCloudSave(false);
+      if (!me.hasSave) {
+        await pushCloudSave(getSaveSnapshot(), true);
+      }
+    }
+    gameState.cloud.statusMessage =
+      mode === "register" && !session
+        ? "確認メールを送信しました。メール認証後にログインしてください。"
+        : null;
+    setAccountStatus(gameState.cloud.statusMessage || `${email} でクラウド同期を開始しました。`);
+    showToast(
+      mode === "register"
+        ? session
+          ? "アカウントを作成しました"
+          : "確認メールを送信しました"
+        : "ログインしました"
+    );
   } catch (error) {
     showToast(error.message || "認証に失敗しました");
     updateAccountUi();
@@ -680,8 +717,10 @@ const gameState = {
     token: null,
     username: null,
     saveUpdatedAt: null,
+    statusMessage: null,
     syncTimeoutId: null,
     isSyncing: false,
+    isReady: false,
   },
 };
 
@@ -8778,9 +8817,13 @@ if (accountSyncButton) {
   });
 }
 if (accountLogoutButton) {
-  accountLogoutButton.addEventListener("click", () => {
-    clearAuthSession();
-    updateAccountUi();
+  accountLogoutButton.addEventListener("click", async () => {
+    if (supabaseClient) {
+      await supabaseClient.auth.signOut();
+    } else {
+      clearAuthSession();
+      updateAccountUi();
+    }
     showToast("ログアウトしました");
   });
 }
@@ -8910,7 +8953,6 @@ window.addEventListener("blur", () => {
 
 gameState.money = ECONOMY.startingMoney;
 const _didLoadSave = loadGame();
-loadAuthSession();
 setSelectedJobType(gameState.selectedJobType);
 updatePhoneScreen();
 updateHUD();
@@ -8928,9 +8970,7 @@ updateEnterShopButton();
 updatePhoneMapPlayerPin();
 updateOverlayMode();
 updateAccountUi();
-if (gameState.cloud.token) {
-  pullCloudSave(false);
-}
+initializeSupabaseAuth();
 
 // Wire up sound toggle button
 const soundToggleBtn = document.getElementById("sound-toggle-button");
