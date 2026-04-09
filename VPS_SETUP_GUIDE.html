@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loopgame VPS Setup Guide</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #18212f;
+        --muted: #596579;
+        --line: #d7dfeb;
+        --panel: #f6f8fc;
+        --accent: #2166d1;
+        --accent-soft: #eaf2ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic", sans-serif;
+        color: var(--ink);
+        background: #ffffff;
+        line-height: 1.7;
+      }
+
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 40px 28px 64px;
+      }
+
+      h1, h2, h3 {
+        line-height: 1.3;
+        margin: 0 0 12px;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      h2 {
+        margin-top: 34px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid var(--line);
+        font-size: 1.35rem;
+      }
+
+      h3 {
+        margin-top: 24px;
+        font-size: 1.05rem;
+      }
+
+      p, li {
+        font-size: 0.98rem;
+      }
+
+      .lead {
+        color: var(--muted);
+        font-size: 1.02rem;
+      }
+
+      .panel {
+        margin: 18px 0;
+        padding: 16px 18px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel);
+      }
+
+      .note {
+        background: #fff9e8;
+        border-color: #f1d98a;
+      }
+
+      .good {
+        background: #edf9f2;
+        border-color: #9fd3b0;
+      }
+
+      code {
+        padding: 0.12em 0.38em;
+        border-radius: 6px;
+        background: var(--accent-soft);
+        color: #0e3d88;
+        font-family: "Cascadia Code", "Consolas", monospace;
+        font-size: 0.92em;
+      }
+
+      pre {
+        margin: 14px 0 18px;
+        padding: 16px 18px;
+        border-radius: 16px;
+        background: #111827;
+        color: #f4f7fb;
+        overflow-x: auto;
+      }
+
+      pre code {
+        padding: 0;
+        background: transparent;
+        color: inherit;
+      }
+
+      ul, ol {
+        padding-left: 1.4rem;
+      }
+
+      .step {
+        margin-top: 18px;
+        padding: 18px 18px 16px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+      }
+
+      .step-title {
+        display: inline-block;
+        margin-bottom: 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      @media print {
+        main {
+          max-width: none;
+          padding: 20mm 16mm;
+        }
+        .step, .panel {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Loopgame VPS セットアップ手順</h1>
+      <p class="lead">
+        対象: Xserver VPS + Ubuntu + PostgreSQL + Node.js + Stripe
+      </p>
+
+      <div class="panel good">
+        <strong>このガイドでやること</strong>
+        <ul>
+          <li>VPS にログインする</li>
+          <li>Node.js / PostgreSQL / Nginx を入れる</li>
+          <li>GitHub からゲームを取得する</li>
+          <li>アプリを起動する</li>
+          <li>保存データと Stripe の準備を進める</li>
+        </ul>
+      </div>
+
+      <h2>1. 事前に用意するもの</h2>
+      <ul>
+        <li>Xserver VPS の契約済みサーバー</li>
+        <li>VPS の IP アドレス</li>
+        <li><code>root</code> パスワードまたは SSH キー</li>
+        <li>GitHub リポジトリ: <code>https://github.com/hikarukundesu/loopgame.git</code></li>
+        <li>将来的に Stripe アカウント</li>
+      </ul>
+
+      <h2>2. VPS に接続する</h2>
+      <div class="step">
+        <div class="step-title">STEP 1</div>
+        <p>自分の PC のターミナルで、次のように接続します。</p>
+        <pre><code>ssh root@あなたのVPSのIPアドレス</code></pre>
+        <p>例:</p>
+        <pre><code>ssh root@123.45.67.89</code></pre>
+        <p>初回は <code>yes</code> と入力して Enter、次に root パスワードを入力します。</p>
+      </div>
+
+      <h2>3. Ubuntu を更新する</h2>
+      <div class="step">
+        <div class="step-title">STEP 2</div>
+        <pre><code>apt update
+apt upgrade -y</code></pre>
+      </div>
+
+      <h2>4. 必要なソフトを入れる</h2>
+      <div class="step">
+        <div class="step-title">STEP 3</div>
+        <pre><code>apt install -y curl git nginx postgresql postgresql-contrib</code></pre>
+        <p>これで Git、Nginx、PostgreSQL が入ります。</p>
+      </div>
+
+      <h2>5. Node.js を入れる</h2>
+      <div class="step">
+        <div class="step-title">STEP 4</div>
+        <pre><code>curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt install -y nodejs
+
+node -v
+npm -v</code></pre>
+      </div>
+
+      <h2>6. GitHub からコードを取得する</h2>
+      <div class="step">
+        <div class="step-title">STEP 5</div>
+        <pre><code>cd /root
+git clone https://github.com/hikarukundesu/loopgame.git
+cd loopgame
+npm install</code></pre>
+      </div>
+
+      <h2>7. PostgreSQL を作る</h2>
+      <div class="step">
+        <div class="step-title">STEP 6</div>
+        <p>PostgreSQL の対話モードに入ります。</p>
+        <pre><code>sudo -u postgres psql</code></pre>
+        <p>中で次を実行します。</p>
+        <pre><code>CREATE DATABASE loopgame;
+CREATE USER loopgame_user WITH ENCRYPTED PASSWORD '強いパスワード';
+GRANT ALL PRIVILEGES ON DATABASE loopgame TO loopgame_user;
+\q</code></pre>
+      </div>
+
+      <h2>8. 環境変数ファイルを作る</h2>
+      <div class="step">
+        <div class="step-title">STEP 7</div>
+        <p><code>.env</code> ファイルを作ります。</p>
+        <pre><code>nano /root/loopgame/.env</code></pre>
+        <p>中身の例:</p>
+        <pre><code>DATABASE_URL=postgresql://loopgame_user:強いパスワード@localhost:5432/loopgame
+JWT_SECRET=長くてランダムな秘密文字列
+PORT=3000</code></pre>
+      </div>
+
+      <h2>9. アプリを起動する</h2>
+      <div class="step">
+        <div class="step-title">STEP 8</div>
+        <p>まず動作確認として起動します。</p>
+        <pre><code>cd /root/loopgame
+npm start</code></pre>
+        <p>正常なら <code>Loopgame server listening on 3000</code> のような表示が出ます。</p>
+      </div>
+
+      <h2>10. Nginx で外部公開する</h2>
+      <div class="step">
+        <div class="step-title">STEP 9</div>
+        <p>Nginx の設定ファイルを作ります。</p>
+        <pre><code>nano /etc/nginx/sites-available/loopgame</code></pre>
+        <p>中身の例:</p>
+        <pre><code>server {
+    listen 80;
+    server_name あなたのIPまたはドメイン;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}</code></pre>
+        <p>有効化して再起動します。</p>
+        <pre><code>ln -s /etc/nginx/sites-available/loopgame /etc/nginx/sites-enabled/loopgame
+nginx -t
+systemctl restart nginx</code></pre>
+      </div>
+
+      <h2>11. 本番では PM2 などで常駐化する</h2>
+      <div class="step">
+        <div class="step-title">STEP 10</div>
+        <pre><code>npm install -g pm2
+cd /root/loopgame
+pm2 start server.js --name loopgame
+pm2 save
+pm2 startup</code></pre>
+      </div>
+
+      <h2>12. Stripe はどうつなぐか</h2>
+      <div class="panel">
+        <ul>
+          <li>決済処理は Stripe Checkout を使う</li>
+          <li>決済成功は Stripe webhook で受ける</li>
+          <li>保存データは PostgreSQL に保存する</li>
+          <li>カード情報は自前で持たない</li>
+        </ul>
+      </div>
+
+      <h2>13. 最後にやること</h2>
+      <ul>
+        <li>独自ドメインを取得したら Nginx の <code>server_name</code> を変える</li>
+        <li>SSL は Let’s Encrypt で入れる</li>
+        <li>DB の定期バックアップを設定する</li>
+        <li>Stripe webhook の署名検証を入れる</li>
+      </ul>
+
+      <div class="panel note">
+        <strong>困ったとき</strong>
+        <p>
+          エラーが出たら、コマンドと表示された全文をそのまま保存しておくと解決しやすいです。
+        </p>
+      </div>
+    </main>
+  </body>
+  </html>

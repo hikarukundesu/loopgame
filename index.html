@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NIGHT DELIVERY PROTOTYPE</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="game-frame">
+        <div class="canvas-wrap">
+          <canvas
+            id="game-canvas"
+            width="960"
+            height="640"
+            aria-label="見下ろし型の配達ゲーム"
+          ></canvas>
+          <button id="enter-shop-button" class="enter-shop-button hidden" type="button">
+            入店
+          </button>
+          <section id="world-map-overlay" class="world-map-overlay hidden" aria-hidden="true">
+            <div class="world-map-shell">
+              <div class="world-map-topbar">
+                <div>
+                  <p class="world-map-label">CITY NAVIGATION</p>
+                  <h2>East Loop Wide Map</h2>
+                </div>
+                <span class="world-map-hint">Shift+M で閉じる</span>
+              </div>
+              <canvas
+                id="world-map-canvas"
+                width="1200"
+                height="800"
+                aria-label="都市全体マップ"
+              ></canvas>
+            </div>
+          </section>
+          <section id="debug-panel-overlay" class="debug-overlay hidden" aria-hidden="true">
+            <div class="debug-shell">
+              <div class="debug-topbar">
+                <div>
+                  <p class="debug-label">DEBUG PANEL</p>
+                  <h2>Time Controls</h2>
+                </div>
+                <span class="debug-hint">M で閉じる</span>
+              </div>
+              <p class="debug-copy">朝・昼・夕方・夜を即座に切り替えられます。`Shift + M` は従来どおり全体マップです。</p>
+              <div class="debug-time-grid">
+                <button class="debug-time-button" type="button" data-time-of-day="morning">朝</button>
+                <button class="debug-time-button" type="button" data-time-of-day="day">昼</button>
+                <button class="debug-time-button" type="button" data-time-of-day="evening">夕方</button>
+                <button class="debug-time-button" type="button" data-time-of-day="night">夜</button>
+              </div>
+            </div>
+          </section>
+          <section id="bike-shop-overlay" class="shop-overlay hidden" aria-hidden="true">
+            <div class="shop-shell">
+              <div class="shop-topbar">
+                <div>
+                  <p class="shop-label">BIKE SHOP</p>
+                  <h2>Velocity Cycles</h2>
+                </div>
+                <button id="close-bike-shop-button" class="shop-close-button" type="button">
+                  閉じる
+                </button>
+              </div>
+              <div class="shop-hero">
+                <span class="shop-badge">BUY STREET</span>
+                <strong>中古自転車やロードバイクを選んで購入</strong>
+                <small>序盤の時短用。車よりは届きやすいが、地味仕事の稼ぎでは少し重めです。</small>
+              </div>
+              <div id="bike-shop-items" class="shop-item-list" aria-label="自転車屋の商品一覧"></div>
+            </div>
+          </section>
+          <section id="car-shop-overlay" class="shop-overlay hidden" aria-hidden="true">
+            <div class="shop-shell car-shop-shell">
+              <div class="shop-topbar">
+                <div>
+                  <p class="shop-label car-shop-label">CAR DEALER</p>
+                  <h2>Steel Motors</h2>
+                </div>
+                <button id="close-car-shop-button" class="shop-close-button" type="button">
+                  閉じる
+                </button>
+              </div>
+              <div class="shop-hero car-shop-hero">
+                <span class="shop-badge">PREMIUM STOCK</span>
+                <strong>中古車からスーパーカーまで、街を駆ける4台を比較して購入</strong>
+                <small>中古車は届きそう、普通車は中期目標、SUV以上は長期目標です。価格差の重さを見ながら選べます。</small>
+              </div>
+              <div id="car-shop-items" class="shop-item-list car-shop-item-list" aria-label="車屋の商品一覧"></div>
+            </div>
+          </section>
+          <section id="hack-overlay" class="hack-overlay hidden" aria-hidden="true">
+            <div class="hack-shell">
+              <div class="hack-topbar">
+                <div>
+                  <p class="hack-label">REMOTE BREACH</p>
+                  <h2>護送車のロックを解除</h2>
+                </div>
+                <button id="close-hack-button" class="hack-close-button" type="button">
+                  閉じる
+                </button>
+              </div>
+              <div id="hack-intro-view" class="hack-view">
+                <div class="hack-hero">
+                  <span class="hack-badge">ARMORED TRANSPORT</span>
+                  <strong>近距離で通信ノードに侵入し、人質用の拘束ロックを解放する</strong>
+                  <small>開始すると3リールのハッキングスロットが回転し、揃えると開放成功です。</small>
+                </div>
+                <button id="start-hack-button" class="hack-action-button" type="button">
+                  ハッキング開始
+                </button>
+              </div>
+              <div id="hack-slot-view" class="hack-view hidden">
+                <div class="hack-target-panel" aria-label="同期ターゲット">
+                  <span class="hack-target-label">SYNC TARGET</span>
+                  <strong id="hack-target-symbol" class="hack-target-symbol">◆</strong>
+                  <small>3つのリールをこの記号で止めると解除成功</small>
+                </div>
+                <div class="slot-machine" aria-label="ハッキングスロット">
+                  <div id="hack-reel-1" class="slot-reel">◆</div>
+                  <div id="hack-reel-2" class="slot-reel">◆</div>
+                  <div id="hack-reel-3" class="slot-reel">◆</div>
+                </div>
+                <p id="hack-status-label" class="hack-status-label">3つのリールを順番に停止してください</p>
+                <button id="hack-stop-button" class="hack-action-button danger" type="button">
+                  リールを停止
+                </button>
+              </div>
+            </div>
+          </section>
+          <div class="game-overlay">
+            <button id="sound-toggle-button" class="sound-toggle-button" type="button" title="サウンドON (クリックでミュート)">🔊</button>
+            <button id="account-button" class="account-button" type="button" title="アカウント / クラウド保存">同期</button>
+            <section class="corner-hud">
+              <p class="corner-label">NEON STREET SHIFT</p>
+              <div class="money-stack">
+                <span class="money-label">MONEY</span>
+                <strong id="money">¥3000</strong>
+                <span id="money-change-indicator" class="money-change-indicator" aria-live="polite"></span>
+                <small id="money-goal-label" class="money-goal-label">次の目標: 中古車まで ¥1000</small>
+              </div>
+              <div class="mini-status time-status">
+                <span id="time-of-day-label">昼</span>
+                <strong id="time-display-label">12:00</strong>
+              </div>
+              <div class="mini-status">
+                <span id="mission-status">待機中</span>
+              </div>
+              <div class="mini-status inventory-status">
+                <span id="inventory-status">車 0 / 自転車 0 / 装備 0</span>
+              </div>
+              <div class="mini-status interaction-status">
+                <span id="interaction-status">買い物ストリートを探索中</span>
+              </div>
+            </section>
+
+            <section class="target-guide" aria-label="現在の案内">
+              <div class="target-guide-topline">
+                <span class="target-guide-label">目的地ナビ</span>
+                <span class="target-guide-hint">矢印の方向へ進む</span>
+              </div>
+              <div class="target-guide-main">
+                <span id="current-target-arrow" class="target-guide-arrow" aria-hidden="true">•</span>
+                <div class="target-guide-copy">
+                  <small class="target-guide-subtitle">NEXT TARGET</small>
+                  <strong id="current-target">依頼を受けてください</strong>
+                </div>
+              </div>
+            </section>
+
+            <aside class="phone-panel" aria-label="ミッションスマホ">
+                <div class="phone-shell">
+                <div class="phone-notch"></div>
+                <div class="phone-screen">
+                  <div class="phone-statusbar">
+                    <span>9:41</span>
+                    <span>5G</span>
+                  </div>
+
+                  <section id="phone-home-screen" class="phone-view phone-home-screen">
+                    <div class="phone-home-header">
+                      <h1>Night Shift</h1>
+                      <span class="phone-home-date">火曜日 4月8日 / 11:56</span>
+                    </div>
+
+                    <div class="phone-home-grid" aria-label="ホーム画面">
+                      <button
+                        id="map-button"
+                        class="home-app-icon-button"
+                        type="button"
+                      >
+                        <span class="home-app-icon map">MAP</span>
+                        <span class="home-app-label">マップ</span>
+                      </button>
+                      <button
+                        id="food-delivery-button"
+                        class="home-app-icon-button"
+                        type="button"
+                      >
+                        <span class="home-app-icon delivery">FD</span>
+                        <span class="home-app-label">Foodデリバリー</span>
+                      </button>
+                      <button
+                        id="vehicle-button"
+                        class="home-app-icon-button"
+                        type="button"
+                      >
+                        <span class="home-app-icon vehicle">VH</span>
+                        <span class="home-app-label">車両</span>
+                      </button>
+                      <button
+                        id="posting-button"
+                        class="home-app-icon-button"
+                        type="button"
+                      >
+                        <span class="home-app-icon posting">PO</span>
+                        <span class="home-app-label">ポスティング</span>
+                      </button>
+                      <button
+                        id="taxi-button"
+                        class="home-app-icon-button"
+                        type="button"
+                      >
+                        <span class="home-app-icon taxi">TX</span>
+                        <span class="home-app-label">タクシー</span>
+                      </button>
+                      <button
+                        id="special-ops-button"
+                        class="home-app-icon-button"
+                        type="button"
+                      >
+                        <span class="home-app-icon special">SO</span>
+                        <span class="home-app-label">特別業務</span>
+                      </button>
+                      <button
+                        id="housing-button"
+                        class="home-app-icon-button"
+                        type="button"
+                      >
+                        <span class="home-app-icon housing">HM</span>
+                        <span class="home-app-label">不動産</span>
+                      </button>
+                    </div>
+
+                    <div class="phone-dock">
+                      <span class="dock-pill">Night Shift</span>
+                    </div>
+                  </section>
+
+                  <section id="map-app-screen" class="phone-view phone-app-screen hidden">
+                    <div class="app-topbar">
+                      <button id="map-home-button" class="app-back-button" type="button" aria-label="ホーム画面に戻る">
+                        ←
+                      </button>
+                      <div>
+                        <p class="phone-app">MAP</p>
+                        <h1>City Map</h1>
+                      </div>
+                    </div>
+                    <div id="phone-map-shell" class="map-app-shell" aria-label="都市マップ">
+                      <div class="map-search-bar">East Loop City</div>
+                      <div id="phone-map-canvas-ui" class="map-canvas-ui">
+                        <div class="map-road road-v one"></div>
+                        <div class="map-road road-v two"></div>
+                        <div class="map-road road-v three"></div>
+                        <div class="map-road road-h one"></div>
+                        <div class="map-road road-h two"></div>
+                        <div class="map-label old-market">Old Market</div>
+                        <div class="map-label downtown-core">Central Plaza</div>
+                        <div class="map-label tower-mile">Tower Mile</div>
+                        <div class="map-label night-arcade">Night Arcade</div>
+                        <div class="map-label warehouse-belt">Warehouse Belt</div>
+                        <div class="map-label harbor-edge">Harbor Edge</div>
+                        <div class="map-label buy-street">BUYストリート</div>
+                        <div id="phone-map-player-pin" class="map-pin player">YOU</div>
+                        <div id="phone-map-shop-layer" class="map-shop-layer" aria-hidden="true"></div>
+                      </div>
+                    </div>
+                    <div class="phone-card compact">
+                      <span>注目スポット</span>
+                      <strong>BUYストリートに買い物スポット集中</strong>
+                    </div>
+                  </section>
+
+                  <section id="food-app-screen" class="phone-view phone-app-screen hidden">
+                    <div class="app-topbar">
+                      <button id="food-home-button" class="app-back-button" type="button" aria-label="ホーム画面に戻る">
+                        ←
+                      </button>
+                      <div>
+                        <p class="phone-app">APP</p>
+                        <h1>Foodデリバリー</h1>
+                      </div>
+                    </div>
+                    <div class="app-hero food-theme">
+                      <span class="app-hero-badge">ACTIVE SHIFT</span>
+                      <strong>店舗で受け取り、住宅へ配達</strong>
+                      <small>まとまった報酬を狙える定番バイト</small>
+                    </div>
+                    <div class="phone-card compact">
+                      <span>報酬</span>
+                      <strong id="food-pay-label">1件ごとにまとまった配達報酬</strong>
+                    </div>
+                    <div class="phone-card">
+                      <span>目的地</span>
+                      <strong id="food-objective">依頼を受けてください</strong>
+                    </div>
+                    <div class="phone-card compact">
+                      <span>進捗</span>
+                      <strong id="food-progress-label">配達アプリを起動中</strong>
+                    </div>
+                    <button id="accept-mission-button" type="button">配達を開始する</button>
+                  </section>
+
+                  <section id="posting-app-screen" class="phone-view phone-app-screen hidden">
+                    <div class="app-topbar">
+                      <button id="posting-home-button" class="app-back-button" type="button" aria-label="ホーム画面に戻る">
+                        ←
+                      </button>
+                      <div>
+                        <p class="phone-app">APP</p>
+                        <h1>ポスティング</h1>
+                      </div>
+                    </div>
+                    <div class="app-hero posting-theme">
+                      <span class="app-hero-badge">DOOR TO DOOR</span>
+                      <strong>店舗や家にチラシを投函</strong>
+                      <small>一軒ずつ回って少額報酬を積み上げる</small>
+                    </div>
+                    <div class="phone-card compact">
+                      <span>報酬</span>
+                      <strong id="posting-pay-label">1軒ごとに少額報酬</strong>
+                    </div>
+                    <div class="phone-card">
+                      <span>目的地</span>
+                      <strong id="posting-objective">依頼を受けてください</strong>
+                    </div>
+                    <div class="phone-card compact">
+                      <span>進捗</span>
+                      <strong id="posting-progress-label">ポスティングアプリを起動中</strong>
+                    </div>
+                    <button id="start-posting-button" type="button">ポスティングを開始する</button>
+                  </section>
+
+                  <section id="taxi-app-screen" class="phone-view phone-app-screen hidden">
+                    <div class="app-topbar">
+                      <button id="taxi-home-button" class="app-back-button" type="button" aria-label="ホーム画面に戻る">
+                        ←
+                      </button>
+                      <div>
+                        <p class="phone-app">APP</p>
+                        <h1>タクシー業務</h1>
+                      </div>
+                    </div>
+                    <div class="app-hero taxi-theme">
+                      <span class="app-hero-badge">CITY CAB</span>
+                      <strong>営業所で車両を借り、街の客を乗せて目的地まで送迎</strong>
+                      <small>先にレンタル代が必要ですが、安定して回せる中間収入の生活仕事です。</small>
+                    </div>
+                    <div class="phone-card compact">
+                      <span>レンタル代</span>
+                      <strong id="taxi-rental-label">営業所で ¥400 を支払って開始</strong>
+                    </div>
+                    <div class="phone-card">
+                      <span>現在の状態</span>
+                      <strong id="taxi-status-label">営業所で待機中</strong>
+                    </div>
+                    <div class="phone-card compact">
+                      <span>運賃 / 累計</span>
+                      <strong id="taxi-fare-label">次の送迎 ¥180〜¥420 / 累計 ¥0</strong>
+                    </div>
+                    <div class="phone-card compact">
+                      <span>進捗</span>
+                      <strong id="taxi-progress-label">スマホからいつでもタクシー業務を開始できます</strong>
+                    </div>
+                    <button id="start-taxi-button" type="button">タクシー業務を開始する</button>
+                    <button id="end-taxi-button" class="secondary-job-button" type="button">タクシー業務を終了する</button>
+                  </section>
+
+                  <section id="vehicle-app-screen" class="phone-view phone-app-screen hidden">
+                    <div class="app-topbar">
+                      <button id="vehicle-home-button" class="app-back-button" type="button" aria-label="ホーム画面に戻る">
+                        ←
+                      </button>
+                      <div>
+                        <p class="phone-app">VEHICLE</p>
+                        <h1>車両</h1>
+                      </div>
+                    </div>
+                    <div class="app-hero vehicle-theme">
+                      <span class="app-hero-badge">GARAGE LINK</span>
+                      <strong>所有している車両から移動手段を選択</strong>
+                      <small>自転車や車を選ぶとすぐ乗車し、Eキーで降りられます。</small>
+                    </div>
+                    <div class="phone-card compact">
+                      <span>現在の状態</span>
+                      <strong id="vehicle-status-label">徒歩で移動中</strong>
+                    </div>
+                    <div class="phone-card">
+                      <span>選択中の車両</span>
+                      <strong id="vehicle-selection-label">なし</strong>
+                    </div>
+                    <div id="vehicle-list" class="vehicle-list" aria-label="所有車両一覧"></div>
+                  </section>
+
+                  <section id="special-ops-screen" class="phone-view phone-app-screen hidden">
+                    <div class="app-topbar">
+                      <button id="special-home-button" class="app-back-button" type="button" aria-label="ホーム画面に戻る">
+                        ←
+                      </button>
+                      <div>
+                        <p class="phone-app">LIST</p>
+                        <h1>特別業務</h1>
+                      </div>
+                    </div>
+                    <div class="app-list-shell">
+                      <div class="app-list-search">ジョブを検索</div>
+                      <div class="app-list-group-label">中間ジョブ</div>
+                      <article class="special-job-card small-job-card">
+                        <span class="special-job-index">0</span>
+                        <div class="special-job-copy">
+                          <strong id="small-job-title">小ミッション: 書類を回収して届ける</strong>
+                          <p id="small-job-summary">短距離で終わる低リスクの小口案件です。報酬は ¥200〜¥350 で、配達より重く危険ジョブより安全です。</p>
+                        </div>
+                        <button id="start-small-mission-button" class="job-list-action mid" type="button">開始</button>
+                      </article>
+                      <div class="app-list-group-label">高リスク任務</div>
+                      <article class="special-job-card">
+                        <span class="special-job-index">1</span>
+                        <div class="special-job-copy">
+                          <strong id="special-job-title">アタッシュケースを奪え</strong>
+                          <p id="special-job-summary">報酬は ¥900〜¥1300。開始すると近くに任務用車両が現れ、指定マンションへの潜入任務が始まります。</p>
+                        </div>
+                        <button id="start-special-button" class="job-list-action" type="button">開始</button>
+                      </article>
+                      <article class="special-job-card rescue-job-card">
+                        <span class="special-job-index">2</span>
+                        <div class="special-job-copy">
+                          <strong id="rescue-job-title">護送車から人質を開放する</strong>
+                          <p id="rescue-job-summary">報酬は ¥700〜¥1500。発光する護送車を追跡し、近づいてハッキングで拘束ロックを解除します。</p>
+                        </div>
+                        <button id="start-rescue-button" class="job-list-action alt" type="button">開始</button>
+                      </article>
+                      <article class="special-job-card">
+                        <span class="special-job-index">3</span>
+                        <div class="special-job-copy">
+                          <strong id="cashout-job-title">ポイント現金を回収して銀行へ運べ</strong>
+                          <p id="cashout-job-summary">報酬は ¥1200〜¥1800。回収後は武装した妨害班に狙われます。1発でも被弾すると失敗ですが、こちらも銃で応戦できます。</p>
+                        </div>
+                        <button id="start-cashout-button" class="job-list-action" type="button">開始</button>
+                      </article>
+                    </div>
+                    <div class="phone-card status-card">
+                      <span>進捗</span>
+                      <strong id="special-progress-label">ジョブ一覧を確認中</strong>
+                    </div>
+                    <div class="phone-card compact status-card">
+                      <span>目的地</span>
+                      <strong id="special-objective-label">任務を開始してください</strong>
+                    </div>
+                  </section>
+
+                  <section id="housing-app-screen" class="phone-view phone-app-screen hidden">
+                    <div class="app-topbar">
+                      <button id="housing-home-button" class="app-back-button" type="button" aria-label="ホーム画面に戻る">
+                        ←
+                      </button>
+                      <div>
+                        <p class="phone-app">HOME</p>
+                        <h1>不動産 / 配信拠点</h1>
+                      </div>
+                    </div>
+                    <div class="app-hero housing-theme">
+                      <span class="app-hero-badge">STREAM BASE</span>
+                      <strong>家を買ってPC配信の収益を伸ばす</strong>
+                      <small>購入後は現地の家に入ってPCから配信できます。レベルが上がるほど収益も上昇します。</small>
+                    </div>
+                    <div class="phone-card compact">
+                      <span>現在の拠点</span>
+                      <strong id="housing-current-house-label">未所有</strong>
+                    </div>
+                    <div class="phone-card">
+                      <span>想定配信収益</span>
+                      <strong id="housing-income-label">レベル1で ¥10〜¥40</strong>
+                    </div>
+                    <div class="phone-card compact">
+                      <span>状態</span>
+                      <strong id="housing-status-label">スマホから拠点を購入できます</strong>
+                    </div>
+                    <div id="housing-list" class="housing-list" aria-label="購入できる家一覧"></div>
+                  </section>
+                  <button id="phone-scroll-indicator" class="phone-scroll-indicator hidden" type="button" aria-label="下へスクロール">
+                    ↓
+                  </button>
+                </div>
+              </div>
+            </aside>
+          </div>
+          <section id="account-overlay" class="account-overlay hidden" aria-hidden="true">
+            <div class="account-shell">
+              <div class="account-topbar">
+                <div>
+                  <p class="account-label">CLOUD SAVE</p>
+                  <h2>アカウント同期</h2>
+                </div>
+                <button id="close-account-button" class="account-close-button" type="button">閉じる</button>
+              </div>
+              <p id="account-status-text" class="account-status-text">Render 上の保存データに接続していません。</p>
+              <label class="account-field">
+                <span>ユーザー名</span>
+                <input id="account-username-input" type="text" maxlength="24" autocomplete="username" placeholder="player01" />
+              </label>
+              <label class="account-field">
+                <span>パスワード</span>
+                <input id="account-password-input" type="password" maxlength="72" autocomplete="current-password" placeholder="8文字以上" />
+              </label>
+              <div class="account-actions">
+                <button id="account-login-button" class="account-action-button" type="button">ログイン</button>
+                <button id="account-register-button" class="account-action-button secondary" type="button">新規登録</button>
+                <button id="account-sync-button" class="account-action-button ghost" type="button">今すぐ同期</button>
+                <button id="account-logout-button" class="account-action-button danger" type="button">ログアウト</button>
+              </div>
+              <small class="account-note">ログイン後は進行状況をクラウド保存し、別端末でも続きから遊べます。</small>
+            </div>
+          </section>
+          <div id="toast" class="toast"></div>
+          <div id="mission-complete-banner" class="mission-complete-banner">
+            MISSION COMPLETE
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
