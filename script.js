@@ -660,6 +660,8 @@ async function beginPremiumCheckout(packId) {
   try {
     gameState.payments.isCreatingCheckout = true;
     renderPremiumShop();
+    // Keep cloud save current before Stripe adds purchased money on the server.
+    await pushCloudSave(getSaveSnapshot(), true);
     const result = await apiRequest("/payments/checkout", {
       method: "POST",
       body: { packId },

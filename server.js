@@ -114,9 +114,16 @@ async function ensureSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS cloud_users (
       id UUID PRIMARY KEY,
-      email TEXT UNIQUE NOT NULL,
+      email TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `);
+
+  // Supabase users are keyed by UUID. Email uniqueness here can break if an
+  // auth user gets recreated with the same email, so we only keep email as metadata.
+  await pool.query(`
+    ALTER TABLE cloud_users
+    DROP CONSTRAINT IF EXISTS cloud_users_email_key;
   `);
 
   await pool.query(`
