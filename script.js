@@ -351,6 +351,7 @@ function drawParticles() {
 
 // ====== SAVE / LOAD ======
 const SAVE_KEY = "nightdelivery_v1";
+const PENDING_CLOUD_BOOTSTRAP_KEY = "nightdelivery_pending_cloud_bootstrap_v1";
 const API_BASE = "/api";
 let supabaseClient = null;
 
@@ -383,6 +384,12 @@ function saveGameLocal(snapshot = getSaveSnapshot()) {
   } catch (_) {}
 }
 
+function savePendingCloudBootstrap(snapshot = getSaveSnapshot()) {
+  try {
+    localStorage.setItem(PENDING_CLOUD_BOOTSTRAP_KEY, JSON.stringify(snapshot));
+  } catch (_) {}
+}
+
 function readLocalSaveSnapshot() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -391,6 +398,37 @@ function readLocalSaveSnapshot() {
   } catch (_) {
     return null;
   }
+}
+
+function readPendingCloudBootstrap() {
+  try {
+    const raw = localStorage.getItem(PENDING_CLOUD_BOOTSTRAP_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (_) {
+    return null;
+  }
+}
+
+function clearPendingCloudBootstrap() {
+  try {
+    localStorage.removeItem(PENDING_CLOUD_BOOTSTRAP_KEY);
+  } catch (_) {}
+}
+
+function getBootstrapSnapshot() {
+  const pendingSnapshot = readPendingCloudBootstrap();
+  const localSnapshot = readLocalSaveSnapshot();
+  const pendingSavedAt = Number(pendingSnapshot?.savedAt || 0);
+  const localSavedAt = Number(localSnapshot?.savedAt || 0);
+
+  if (pendingSavedAt >= localSavedAt && pendingSnapshot && typeof pendingSnapshot.money === "number") {
+    return pendingSnapshot;
+  }
+  if (localSnapshot && typeof localSnapshot.money === "number") {
+    return localSnapshot;
+  }
+  return getSaveSnapshot();
 }
 
 function applySaveData(data) {
@@ -842,6 +880,11 @@ async function submitAccountForm(mode) {
   try {
     gameState.cloud.isSyncing = true;
     updateAccountUi();
+    if (mode === "register") {
+      const bootstrapSnapshot = getSaveSnapshot();
+      saveGameLocal(bootstrapSnapshot);
+      savePendingCloudBootstrap(bootstrapSnapshot);
+    }
     let authResult;
     if (mode === "register") {
       authResult = await supabaseClient.auth.signUp({ email, password });
@@ -859,7 +902,12 @@ async function submitAccountForm(mode) {
       const me = await apiRequest("/auth/me");
       await pullCloudSave(false);
       if (!me.hasSave) {
-        await pushCloudSave(getSaveSnapshot(), true);
+        const didPushBootstrap = await pushCloudSave(getBootstrapSnapshot(), true);
+        if (didPushBootstrap) {
+          clearPendingCloudBootstrap();
+        }
+      } else {
+        clearPendingCloudBootstrap();
       }
     }
     gameState.cloud.statusMessage =
