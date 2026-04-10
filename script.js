@@ -570,26 +570,21 @@ function renderPremiumShop() {
     copy.append(title);
 
     const desc = document.createElement("p");
-    desc.textContent = pack.description || `${formatCurrency(pack.priceJpy)} の決済で ${formatCurrency(pack.moneyAmount)} をチャージ`;
+    desc.textContent = pack.description || "購入した分だけ、そのまま所持金に反映されます。";
     copy.append(desc);
 
     const meta = document.createElement("div");
     meta.className = "premium-pack-meta";
 
     const amount = document.createElement("strong");
-    amount.textContent = `${formatCurrency(pack.moneyAmount)} マネー`;
+    amount.textContent = `ゲーム内通貨 ${formatCurrency(pack.moneyAmount)} ドル`;
     meta.append(amount);
-
-    const bonus = document.createElement("span");
-    const bonusAmount = Math.max(0, Number(pack.moneyAmount) - Number(pack.priceJpy));
-    bonus.textContent = bonusAmount > 0 ? `ボーナス +${formatCurrency(bonusAmount)}` : "スタンダード";
-    meta.append(bonus);
     copy.append(meta);
 
     const button = document.createElement("button");
     button.type = "button";
     button.className = "premium-pack-buy-button";
-    button.textContent = gameState.payments.isCreatingCheckout ? "準備中..." : `${formatCurrency(pack.priceJpy)} で購入`;
+    button.textContent = gameState.payments.isCreatingCheckout ? "準備中..." : `${Math.round(pack.priceJpy)}円で買う`;
     button.disabled =
       !gameState.payments.enabled ||
       !gameState.cloud.token ||
