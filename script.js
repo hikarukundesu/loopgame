@@ -97,7 +97,6 @@ const accountEmailInput = document.getElementById("account-email-input");
 const accountPasswordInput = document.getElementById("account-password-input");
 const accountLoginButton = document.getElementById("account-login-button");
 const accountRegisterButton = document.getElementById("account-register-button");
-const accountSyncButton = document.getElementById("account-sync-button");
 const accountLogoutButton = document.getElementById("account-logout-button");
 const debugTimeButtons = document.querySelectorAll(".debug-time-button");
 const worldMapCanvas = document.getElementById("world-map-canvas");
@@ -272,6 +271,13 @@ const SAVE_KEY = "nightdelivery_v1";
 const API_BASE = "/api";
 let supabaseClient = null;
 
+function resetTransientInputState() {
+  Object.keys(keys).forEach((key) => {
+    keys[key] = false;
+  });
+  inputState.fireHeld = false;
+}
+
 function saveGame() {
   const snapshot = getSaveSnapshot();
   saveGameLocal(snapshot);
@@ -375,6 +381,11 @@ function applySupabaseSession(session) {
 
 function setAccountOverlayOpen(open) {
   gameState.isAccountOverlayOpen = open;
+  if (open) {
+    toggleDebugPanel(false);
+    toggleWorldMap(false);
+    resetTransientInputState();
+  }
   if (!accountOverlay) {
     return;
   }
@@ -392,9 +403,6 @@ function updateAccountUi() {
   if (accountButton) {
     accountButton.textContent = gameState.cloud.username ? "クラウド" : "同期";
   }
-  if (accountSyncButton) {
-    accountSyncButton.disabled = !gameState.cloud.token || gameState.cloud.isSyncing;
-  }
   if (accountLogoutButton) {
     accountLogoutButton.disabled = !gameState.cloud.token;
   }
@@ -406,14 +414,14 @@ function updateAccountUi() {
   }
   if (gameState.cloud.username) {
     setAccountStatus(
-      `${gameState.cloud.username} でログイン中。${gameState.cloud.saveUpdatedAt ? "クラウド保存に接続済み。" : "ログイン済み、まだ同期前です。"}`
+      `${gameState.cloud.username} でログイン中。${gameState.cloud.saveUpdatedAt ? "クラウド保存に接続済みです。" : "この端末の進行は自動で保存されます。"}`
     );
   } else if (gameState.cloud.statusMessage) {
     setAccountStatus(gameState.cloud.statusMessage);
   } else {
     setAccountStatus(
       gameState.cloud.isReady
-        ? "Supabase でログインしてクラウド保存を使えます。"
+        ? "新規登録して今の進行を保存するか、ログインしてクラウド保存を復元できます。"
         : "Supabase を初期化しています。"
     );
   }
@@ -574,13 +582,16 @@ async function submitAccountForm(mode) {
       mode === "register" && !session
         ? "確認メールを送信しました。メール認証後にログインしてください。"
         : null;
-    setAccountStatus(gameState.cloud.statusMessage || `${email} でクラウド同期を開始しました。`);
+    setAccountStatus(
+      gameState.cloud.statusMessage ||
+      (mode === "register" ? `${email} の進行データ保存を開始しました。` : `${email} のクラウド保存を復元しました。`)
+    );
     showToast(
       mode === "register"
         ? session
-          ? "アカウントを作成しました"
+          ? "新規登録して保存しました"
           : "確認メールを送信しました"
-        : "ログインしました"
+        : "ログインして復元しました"
     );
   } catch (error) {
     showToast(error.message || "認証に失敗しました");
@@ -8811,11 +8822,6 @@ if (accountLoginButton) {
 if (accountRegisterButton) {
   accountRegisterButton.addEventListener("click", () => submitAccountForm("register"));
 }
-if (accountSyncButton) {
-  accountSyncButton.addEventListener("click", () => {
-    pushCloudSave(getSaveSnapshot(), false);
-  });
-}
 if (accountLogoutButton) {
   accountLogoutButton.addEventListener("click", async () => {
     if (supabaseClient) {
@@ -8832,6 +8838,9 @@ window.addEventListener("keydown", (event) => {
   if (gameState.isAccountOverlayOpen && event.code === "Escape") {
     event.preventDefault();
     setAccountOverlayOpen(false);
+    return;
+  }
+  if (gameState.isAccountOverlayOpen) {
     return;
   }
   if (gameState.isHackOverlayOpen) {
@@ -8945,10 +8954,7 @@ window.addEventListener("keyup", (event) => {
 });
 
 window.addEventListener("blur", () => {
-  Object.keys(keys).forEach((key) => {
-    keys[key] = false;
-  });
-  inputState.fireHeld = false;
+  resetTransientInputState();
 });
 
 gameState.money = ECONOMY.startingMoney;

@@ -359,6 +359,10 @@ body {
   margin-top: 16px;
 }
 
+#account-logout-button {
+  grid-column: 1 / -1;
+}
+
 .account-action-button {
   padding: 11px 14px;
   background: linear-gradient(180deg, #2c68d8, #2155b9);
