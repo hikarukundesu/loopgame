@@ -523,7 +523,7 @@ function updateAccountUi() {
   } else {
     setAccountStatus(
       gameState.cloud.isReady
-        ? "新規登録して今の進行を保存するか、ログインしてクラウド保存を復元できます。"
+        ? "初めてなら新規登録、登録済みならログインを選んでください。"
       : "Supabase を初期化しています。"
     );
   }
@@ -864,11 +864,11 @@ async function submitAccountForm(mode) {
     }
     gameState.cloud.statusMessage =
       mode === "register" && !session
-        ? "確認メールを送信しました。メール認証後にログインしてください。"
+        ? "確認メールを送信しました。迷惑メールフォルダも確認して、メール内リンクを開いたあとにログインしてください。"
         : null;
     setAccountStatus(
       gameState.cloud.statusMessage ||
-      (mode === "register" ? `${email} の進行データ保存を開始しました。` : `${email} のクラウド保存を復元しました。`)
+      (mode === "register" ? `${email} を登録しました。この端末の進行はクラウド保存されます。` : `${email} でログインしました。クラウド保存をこの端末へ復元しました。`)
     );
     showToast(
       mode === "register"

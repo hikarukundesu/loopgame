@@ -538,11 +538,19 @@
               <div class="account-topbar">
                 <div>
                   <p class="account-label">CLOUD SAVE</p>
-                  <h2>データ保存 / 復元</h2>
+                  <h2>ログイン / 新規登録</h2>
                 </div>
                 <button id="close-account-button" class="account-close-button" type="button">閉じる</button>
               </div>
-              <p id="account-status-text" class="account-status-text">新規登録してこの端末の進行を保存するか、ログインしてクラウド保存を復元できます。</p>
+              <div class="account-guide">
+                <strong>はじめて使う人</strong>
+                <p>メールアドレスとパスワードを入れて、`新規登録` を押します。確認メールが届いたら、メール内リンクを開いてから `ログイン` してください。</p>
+              </div>
+              <div class="account-guide alt">
+                <strong>すでに登録済みの人</strong>
+                <p>同じメールアドレスとパスワードで `ログイン` を押すと、クラウド保存をこの端末に読み込みます。</p>
+              </div>
+              <p id="account-status-text" class="account-status-text">初めてなら新規登録、登録済みならログインを選んでください。</p>
               <label class="account-field">
                 <span>メールアドレス</span>
                 <input id="account-email-input" type="email" maxlength="120" autocomplete="email" placeholder="player@example.com" />
@@ -552,11 +560,11 @@
                 <input id="account-password-input" type="password" maxlength="72" autocomplete="current-password" placeholder="8文字以上" />
               </label>
               <div class="account-actions">
-                <button id="account-register-button" class="account-action-button secondary" type="button">新規登録して保存</button>
-                <button id="account-login-button" class="account-action-button" type="button">ログインして復元</button>
+                <button id="account-register-button" class="account-action-button secondary" type="button">初めてなので新規登録</button>
+                <button id="account-login-button" class="account-action-button" type="button">登録済みなのでログイン</button>
                 <button id="account-logout-button" class="account-action-button danger" type="button">ログアウト</button>
               </div>
-              <small class="account-note">新規登録すると今の進行をクラウドへ保存します。ログインすると保存済みデータをこの端末へ戻します。</small>
+              <small class="account-note">確認メールが届かないときは、迷惑メールフォルダも確認してください。Supabase のメール設定が未完了だと配信されないことがあります。</small>
             </div>
           </section>
           <div id="toast" class="toast"></div>

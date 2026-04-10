@@ -327,6 +327,37 @@ body {
   line-height: 1.45;
 }
 
+.account-guide {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(88, 244, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.account-guide.alt {
+  border-color: rgba(255, 216, 102, 0.16);
+  background: rgba(255, 216, 102, 0.06);
+}
+
+.account-guide strong,
+.account-guide p {
+  margin: 0;
+}
+
+.account-guide strong {
+  display: block;
+  color: #f7fbff;
+  font-size: 0.92rem;
+}
+
+.account-guide p {
+  margin-top: 6px;
+  color: rgba(239, 244, 255, 0.76);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
 .account-field {
   display: grid;
   gap: 6px;
