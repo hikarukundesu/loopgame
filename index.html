@@ -243,6 +243,14 @@
                         <span class="home-app-icon housing">HM</span>
                         <span class="home-app-label">不動産</span>
                       </button>
+                      <button
+                        id="premium-button"
+                        class="home-app-icon-button"
+                        type="button"
+                      >
+                        <span class="home-app-icon premium">PM</span>
+                        <span class="home-app-label">課金</span>
+                      </button>
                     </div>
 
                     <div class="phone-dock">
@@ -491,6 +499,32 @@
                       <strong id="housing-status-label">スマホから拠点を購入できます</strong>
                     </div>
                     <div id="housing-list" class="housing-list" aria-label="購入できる家一覧"></div>
+                  </section>
+
+                  <section id="premium-app-screen" class="phone-view phone-app-screen hidden">
+                    <div class="app-topbar">
+                      <button id="premium-home-button" class="app-back-button" type="button" aria-label="ホーム画面に戻る">
+                        ←
+                      </button>
+                      <div>
+                        <p class="phone-app">SHOP</p>
+                        <h1>マネーチャージ</h1>
+                      </div>
+                    </div>
+                    <div class="app-hero premium-theme">
+                      <span class="app-hero-badge">CHECKOUT</span>
+                      <strong>Stripeでゲーム内マネーをチャージ</strong>
+                      <small>ログイン中のアカウントに入金されます。決済確定後に所持金へ反映されます。</small>
+                    </div>
+                    <div class="phone-card compact">
+                      <span>決済方式</span>
+                      <strong>Web版向け Stripe Checkout</strong>
+                    </div>
+                    <div class="phone-card">
+                      <span>購入前の確認</span>
+                      <strong id="premium-status-label">ログインすると購入パックを選べます</strong>
+                    </div>
+                    <div id="premium-pack-list" class="premium-pack-list" aria-label="購入できるマネーパック一覧"></div>
                   </section>
                   <button id="phone-scroll-indicator" class="phone-scroll-indicator hidden" type="button" aria-label="下へスクロール">
                     ↓

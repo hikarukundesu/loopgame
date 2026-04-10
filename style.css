@@ -389,6 +389,11 @@ body {
   line-height: 1.45;
 }
 
+.account-action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .hack-shell {
   width: min(92vw, 560px);
   padding: 22px;
@@ -1445,6 +1450,12 @@ body {
     linear-gradient(160deg, #d8f8ff, #9fd8ff 48%, #79ffb5);
 }
 
+.home-app-icon.premium {
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.34), transparent 28%),
+    linear-gradient(160deg, #fff2a6, #ffcf5b 48%, #ff8c42);
+}
+
 .home-app-label {
   font-size: 0.7rem;
   line-height: 1.25;
@@ -1570,6 +1581,13 @@ body {
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.22), transparent 26%),
     linear-gradient(145deg, rgba(159, 216, 255, 0.42), rgba(121, 255, 181, 0.18) 55%, rgba(8, 17, 29, 0.42));
   border: 1px solid rgba(159, 216, 255, 0.26);
+}
+
+.app-hero.premium-theme {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.22), transparent 26%),
+    linear-gradient(145deg, rgba(255, 220, 118, 0.46), rgba(255, 171, 77, 0.24) 55%, rgba(34, 18, 5, 0.42));
+  border: 1px solid rgba(255, 190, 92, 0.28);
 }
 
 .app-hero-badge {
@@ -1741,6 +1759,74 @@ body {
 .vehicle-list {
   display: grid;
   gap: 12px;
+}
+
+.premium-pack-list {
+  display: grid;
+  gap: 12px;
+}
+
+.premium-pack-card {
+  display: grid;
+  gap: 12px;
+  padding: 13px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(214, 220, 232, 0.95);
+  background:
+    radial-gradient(circle at top right, rgba(255, 211, 107, 0.18), transparent 30%),
+    rgba(255, 255, 255, 0.98);
+  box-shadow: 0 10px 18px rgba(28, 40, 66, 0.05);
+  color: #18212f;
+}
+
+.premium-pack-copy strong,
+.premium-pack-copy p {
+  margin: 0;
+}
+
+.premium-pack-copy p {
+  margin-top: 5px;
+  color: #697589;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.premium-pack-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.premium-pack-meta span {
+  color: #b26a00;
+  font-size: 0.73rem;
+  font-weight: 700;
+}
+
+.premium-pack-meta strong {
+  color: #1a2130;
+  font-size: 1rem;
+}
+
+.premium-pack-buy-button {
+  appearance: none;
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #ffdc76, #ffab4d);
+  color: #241200;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(255, 171, 77, 0.2);
+}
+
+.premium-pack-buy-button:disabled {
+  cursor: default;
+  opacity: 0.55;
+  box-shadow: none;
 }
 
 .app-list-shell {

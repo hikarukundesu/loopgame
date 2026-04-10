@@ -39,6 +39,7 @@ const postingButton = document.getElementById("posting-button");
 const taxiButton = document.getElementById("taxi-button");
 const specialOpsButton = document.getElementById("special-ops-button");
 const housingButton = document.getElementById("housing-button");
+const premiumButton = document.getElementById("premium-button");
 const mapHomeButton = document.getElementById("map-home-button");
 const foodHomeButton = document.getElementById("food-home-button");
 const vehicleHomeButton = document.getElementById("vehicle-home-button");
@@ -46,6 +47,7 @@ const postingHomeButton = document.getElementById("posting-home-button");
 const taxiHomeButton = document.getElementById("taxi-home-button");
 const specialHomeButton = document.getElementById("special-home-button");
 const housingHomeButton = document.getElementById("housing-home-button");
+const premiumHomeButton = document.getElementById("premium-home-button");
 const phoneMapShell = document.getElementById("phone-map-shell");
 const phoneMapCanvasUi = document.getElementById("phone-map-canvas-ui");
 const phoneMapPlayerPin = document.getElementById("phone-map-player-pin");
@@ -58,6 +60,7 @@ const taxiAppScreen = document.getElementById("taxi-app-screen");
 const vehicleAppScreen = document.getElementById("vehicle-app-screen");
 const specialOpsScreen = document.getElementById("special-ops-screen");
 const housingAppScreen = document.getElementById("housing-app-screen");
+const premiumAppScreen = document.getElementById("premium-app-screen");
 const phoneScrollIndicator = document.getElementById("phone-scroll-indicator");
 const foodPayLabel = document.getElementById("food-pay-label");
 const foodObjectiveLabel = document.getElementById("food-objective");
@@ -84,6 +87,8 @@ const housingCurrentHouseLabel = document.getElementById("housing-current-house-
 const housingIncomeLabel = document.getElementById("housing-income-label");
 const housingStatusLabel = document.getElementById("housing-status-label");
 const housingList = document.getElementById("housing-list");
+const premiumStatusLabel = document.getElementById("premium-status-label");
+const premiumPackList = document.getElementById("premium-pack-list");
 const toast = document.getElementById("toast");
 const missionCompleteBanner = document.getElementById("mission-complete-banner");
 const gameOverlay = document.querySelector(".game-overlay");
@@ -106,6 +111,14 @@ const worldMapCtx = worldMapCanvas.getContext("2d");
 const AudioEngine = (() => {
   let actx = null;
   let muted = false;
+  let bgmStarted = false;
+  let currentMusicKey = null;
+  const MUSIC_TRACKS = {
+    bgm: { src: "assets/bgm.mp3", volume: 0.18 },
+    car: { src: "assets/car.mp3", volume: 0.16 },
+    gun: { src: "assets/gun.mp3", volume: 0.2 },
+  };
+  const musicPlayers = {};
 
   function getCtx() {
     if (!actx) {
@@ -151,9 +164,79 @@ const AudioEngine = (() => {
     src.stop(ac.currentTime + startDelay + duration + 0.05);
   }
 
+  function getMusicPlayer(trackKey) {
+    if (!musicPlayers[trackKey]) {
+      const track = MUSIC_TRACKS[trackKey];
+      if (!track) {
+        return null;
+      }
+      const player = new Audio(track.src);
+      player.loop = true;
+      player.preload = "auto";
+      player.volume = track.volume;
+      player.muted = muted;
+      musicPlayers[trackKey] = player;
+    }
+    return musicPlayers[trackKey];
+  }
+
+  function syncMusicMuteState() {
+    Object.values(musicPlayers).forEach((player) => {
+      player.muted = muted;
+    });
+  }
+
+  function playMusic(trackKey) {
+    const music = getMusicPlayer(trackKey);
+    if (!music) return;
+    currentMusicKey = trackKey;
+    syncMusicMuteState();
+    const playPromise = music.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {
+        bgmStarted = false;
+        if (currentMusicKey === trackKey) {
+          currentMusicKey = null;
+        }
+      });
+    }
+    bgmStarted = true;
+  }
+
+  function pauseInactiveMusic(activeTrackKey) {
+    Object.entries(musicPlayers).forEach(([trackKey, player]) => {
+      if (trackKey === activeTrackKey) return;
+      if (!player.paused) {
+        player.pause();
+        player.currentTime = 0;
+      }
+    });
+  }
+
   return {
     isMuted() { return muted; },
-    toggleMute() { muted = !muted; return muted; },
+    toggleMute() {
+      muted = !muted;
+      syncMusicMuteState();
+      if (!muted && bgmStarted && currentMusicKey) {
+        playMusic(currentMusicKey);
+      }
+      return muted;
+    },
+    primeBgm() {
+      if (bgmStarted) return;
+      this.setMusic("bgm");
+    },
+    setMusic(trackKey) {
+      const nextTrackKey = MUSIC_TRACKS[trackKey] ? trackKey : "bgm";
+      pauseInactiveMusic(nextTrackKey);
+      const currentPlayer = getMusicPlayer(nextTrackKey);
+      if (!currentPlayer) return;
+      if (currentMusicKey === nextTrackKey && !currentPlayer.paused) {
+        return;
+      }
+      playMusic(nextTrackKey);
+    },
 
     footstep() { noise(0.04, 0.045); },
 
@@ -288,7 +371,7 @@ function getSaveSnapshot() {
   return {
     money: gameState.money,
     inventory: { ...gameState.inventory },
-    house: { level: gameState.house.level, buildingName: gameState.house.buildingName },
+    house: { level: gameState.house.level, buildingName: gameState.house.buildingName, totalEarned: gameState.house.totalEarned, streamCount: gameState.house.streamCount },
     purchasedItems: [...purchasedItemIds],
     savedAt: Date.now(),
   };
@@ -320,6 +403,8 @@ function applySaveData(data) {
   if (data.house) {
     gameState.house.level = data.house.level ?? 0;
     gameState.house.buildingName = data.house.buildingName ?? null;
+    gameState.house.totalEarned = data.house.totalEarned ?? 0;
+    gameState.house.streamCount = data.house.streamCount ?? 0;
   }
   purchasedItemIds.clear();
   Object.values(catalogById).forEach((item) => {
@@ -358,6 +443,12 @@ async function initializeSupabaseAuth() {
     }
     supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
     gameState.cloud.isReady = true;
+    gameState.payments.enabled = Boolean(config.stripeEnabled);
+    gameState.payments.packs = Array.isArray(config.premiumPacks) ? config.premiumPacks : [];
+    gameState.payments.statusMessage = config.stripeEnabled
+      ? null
+      : "Stripeの環境変数が未設定です。サーバー設定後に購入を開放できます。";
+    renderPremiumShop();
     const { data } = await supabaseClient.auth.getSession();
     applySupabaseSession(data.session || null);
     supabaseClient.auth.onAuthStateChange((_event, session) => {
@@ -365,11 +456,13 @@ async function initializeSupabaseAuth() {
     });
     if (gameState.cloud.token) {
       await pullCloudSave(false);
+      await handlePaymentReturnIfNeeded();
     }
   } catch (error) {
     gameState.cloud.isReady = true;
     gameState.cloud.statusMessage = error.message || "Supabase 初期化に失敗しました。";
     updateAccountUi();
+    renderPremiumShop();
   }
 }
 
@@ -382,6 +475,10 @@ function applySupabaseSession(session) {
     gameState.cloud.statusMessage = null;
   }
   updateAccountUi();
+  renderPremiumShop();
+  if (gameState.cloud.token) {
+    handlePaymentReturnIfNeeded();
+  }
 }
 
 function setAccountOverlayOpen(open) {
@@ -427,9 +524,103 @@ function updateAccountUi() {
     setAccountStatus(
       gameState.cloud.isReady
         ? "新規登録して今の進行を保存するか、ログインしてクラウド保存を復元できます。"
-        : "Supabase を初期化しています。"
+      : "Supabase を初期化しています。"
     );
   }
+}
+
+function setPremiumStatus(message) {
+  gameState.payments.statusMessage = message;
+  if (premiumStatusLabel) {
+    premiumStatusLabel.textContent = message;
+  }
+}
+
+function renderPremiumShop() {
+  if (!premiumPackList) {
+    return;
+  }
+
+  let statusMessage = "ログインすると購入パックを選べます";
+  if (!gameState.payments.enabled) {
+    statusMessage = gameState.payments.statusMessage || "Stripeの設定がまだ入っていません";
+  } else if (!gameState.cloud.token) {
+    statusMessage = "購入するには右上の同期からログインしてください";
+  } else if (!gameState.payments.packs.length) {
+    statusMessage = "販売パックはまだ登録されていません";
+  } else if (gameState.payments.isCreatingCheckout) {
+    statusMessage = "Stripe Checkout を準備しています...";
+  } else if (gameState.payments.isConfirmingReturn) {
+    statusMessage = "決済結果を確認しています...";
+  } else {
+    statusMessage = `購入先: ${gameState.cloud.username || "ログイン中のアカウント"}`;
+  }
+  setPremiumStatus(statusMessage);
+
+  premiumPackList.innerHTML = "";
+  gameState.payments.packs.forEach((pack) => {
+    const card = document.createElement("article");
+    card.className = "premium-pack-card";
+
+    const copy = document.createElement("div");
+    copy.className = "premium-pack-copy";
+
+    const title = document.createElement("strong");
+    title.textContent = pack.name;
+    copy.append(title);
+
+    const desc = document.createElement("p");
+    desc.textContent = pack.description || `${formatCurrency(pack.priceJpy)} で ${formatCurrency(pack.moneyAmount)} を追加`;
+    copy.append(desc);
+
+    const meta = document.createElement("div");
+    meta.className = "premium-pack-meta";
+
+    const bonus = document.createElement("span");
+    const bonusAmount = Math.max(0, Number(pack.moneyAmount) - Number(pack.priceJpy));
+    bonus.textContent = bonusAmount > 0 ? `ボーナス +${formatCurrency(bonusAmount)}` : "スタンダード";
+    meta.append(bonus);
+
+    const price = document.createElement("strong");
+    price.textContent = formatCurrency(pack.priceJpy);
+    meta.append(price);
+    copy.append(meta);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "premium-pack-buy-button";
+    button.textContent = gameState.payments.isCreatingCheckout ? "準備中..." : `${formatCurrency(pack.moneyAmount)} を購入`;
+    button.disabled =
+      !gameState.payments.enabled ||
+      !gameState.cloud.token ||
+      gameState.payments.isCreatingCheckout ||
+      gameState.payments.isConfirmingReturn;
+    button.addEventListener("click", () => beginPremiumCheckout(pack.id));
+
+    card.append(copy, button);
+    premiumPackList.append(card);
+  });
+}
+
+function applyConfirmedSaveData(saveData) {
+  if (!saveData) {
+    return false;
+  }
+
+  if (!applySaveData(saveData)) {
+    return false;
+  }
+
+  saveGameLocal(saveData);
+  updateHUD();
+  updateButtonState();
+  updateInventoryStatus();
+  updateVehicleApp();
+  renderBikeShopItems();
+  renderCarShopItems();
+  renderHousingApp();
+  updateHousingUI();
+  return true;
 }
 
 async function apiRequest(path, options = {}) {
@@ -450,6 +641,106 @@ async function apiRequest(path, options = {}) {
     throw new Error(data.error || "リクエストに失敗しました");
   }
   return data;
+}
+
+async function beginPremiumCheckout(packId) {
+  if (!gameState.payments.enabled) {
+    showToast("Stripeの設定がまだ完了していません");
+    return;
+  }
+  if (!gameState.cloud.token) {
+    setAccountOverlayOpen(true);
+    showToast("購入するには先にログインしてください");
+    return;
+  }
+  if (gameState.payments.isCreatingCheckout || gameState.payments.isConfirmingReturn) {
+    return;
+  }
+
+  try {
+    gameState.payments.isCreatingCheckout = true;
+    renderPremiumShop();
+    const result = await apiRequest("/payments/checkout", {
+      method: "POST",
+      body: { packId },
+    });
+    if (!result.url) {
+      throw new Error("Checkout URL の作成に失敗しました");
+    }
+    window.location.assign(result.url);
+  } catch (error) {
+    showToast(error.message || "決済ページの作成に失敗しました");
+    gameState.payments.isCreatingCheckout = false;
+    renderPremiumShop();
+  }
+}
+
+function clearPaymentReturnQuery() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("payment");
+  url.searchParams.delete("session_id");
+  window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+}
+
+async function handlePaymentReturnIfNeeded() {
+  const params = new URLSearchParams(window.location.search);
+  const paymentState = params.get("payment");
+  const sessionId = params.get("session_id");
+
+  if (!paymentState) {
+    return false;
+  }
+
+  if (paymentState === "cancel") {
+    clearPaymentReturnQuery();
+    showToast("購入をキャンセルしました");
+    return true;
+  }
+
+  if (paymentState !== "success" || !sessionId) {
+    clearPaymentReturnQuery();
+    return false;
+  }
+
+  gameState.payments.pendingReturnSessionId = sessionId;
+  if (!gameState.cloud.token || gameState.payments.isConfirmingReturn) {
+    renderPremiumShop();
+    return false;
+  }
+
+  try {
+    gameState.payments.isConfirmingReturn = true;
+    renderPremiumShop();
+    const result = await apiRequest("/payments/confirm", {
+      method: "POST",
+      body: { sessionId: gameState.payments.pendingReturnSessionId },
+    });
+    gameState.cloud.saveUpdatedAt = result.updatedAt || new Date().toISOString();
+    updateAccountUi();
+    if (result.saveData) {
+      applyConfirmedSaveData(result.saveData);
+    } else {
+      await pullCloudSave(false);
+    }
+    const grantedMoney = Number(result.grantedMoneyAmount || 0);
+    if (grantedMoney > 0) {
+      showToast(`${formatCurrency(grantedMoney)} をチャージしました`);
+    } else if (result.status === "paid") {
+      showToast("決済を確認しました");
+    } else {
+      showToast("決済はまだ確定待ちです");
+    }
+    clearPaymentReturnQuery();
+    gameState.payments.pendingReturnSessionId = null;
+    return true;
+  } catch (error) {
+    showToast(error.message || "決済結果の確認に失敗しました");
+    return false;
+  } finally {
+    gameState.payments.isConfirmingReturn = false;
+    gameState.payments.isCreatingCheckout = false;
+    renderPremiumShop();
+  }
 }
 
 async function pushCloudSave(snapshot = getSaveSnapshot(), silent = true) {
@@ -508,16 +799,7 @@ async function pullCloudSave(showToastOnSuccess = false) {
       const cloudSavedAt = Number(result.saveData.savedAt || 0);
 
       if (cloudSavedAt >= localSavedAt) {
-        applySaveData(result.saveData);
-        saveGameLocal(result.saveData);
-        updateHUD();
-        updateButtonState();
-        updateInventoryStatus();
-        updateVehicleApp();
-        renderBikeShopItems();
-        renderCarShopItems();
-        renderHousingApp();
-        updateHousingUI();
+        applyConfirmedSaveData(result.saveData);
       } else {
         const syncResult = await apiRequest("/save", {
           method: "PUT",
@@ -728,6 +1010,8 @@ const gameState = {
     buildingName: null,
     cooldown: 0,
     streaming: null,
+    totalEarned: 0,
+    streamCount: 0,
   },
   cloud: {
     token: null,
@@ -737,6 +1021,14 @@ const gameState = {
     syncTimeoutId: null,
     isSyncing: false,
     isReady: false,
+  },
+  payments: {
+    enabled: false,
+    packs: [],
+    isCreatingCheckout: false,
+    pendingReturnSessionId: null,
+    isConfirmingReturn: false,
+    statusMessage: null,
   },
 };
 
@@ -2297,37 +2589,51 @@ function createHouseInteriorLayout() {
   const roomWidth = houseState.width;
   const roomHeight = houseState.height;
   const accentPalette = {
-    1: { wall: "#5d5046", floor: "#7a6858", rug: "#6f4035", glow: "#ffcf7a" },
-    2: { wall: "#4f5c67", floor: "#7e7365", rug: "#31566f", glow: "#8cdfff" },
-    3: { wall: "#53635a", floor: "#847766", rug: "#375a49", glow: "#79ffb5" },
-    4: { wall: "#3d465d", floor: "#87745d", rug: "#6b4d7a", glow: "#9fd8ff" },
-    5: { wall: "#2d344a", floor: "#8f7d66", rug: "#3f577b", glow: "#b8f4ff" },
+    1: { wall: "#5d5046", wallDark: "#2e2720", floor: "#7a6858", floorDark: "#4a3e34", rug: "#6f4035", glow: "#ffcf7a", accent2: "#c8934b" },
+    2: { wall: "#4f5c67", wallDark: "#272f38", floor: "#7e7365", floorDark: "#48443e", rug: "#31566f", glow: "#8cdfff", accent2: "#4fa8d8" },
+    3: { wall: "#53635a", wallDark: "#293630", floor: "#847766", floorDark: "#4d4740", rug: "#375a49", glow: "#79ffb5", accent2: "#5ac47a" },
+    4: { wall: "#3d465d", wallDark: "#1e2330", floor: "#87745d", floorDark: "#4f4437", rug: "#6b4d7a", glow: "#9fd8ff", accent2: "#7a5dd8" },
+    5: { wall: "#2d344a", wallDark: "#161b26", floor: "#8f7d66", floorDark: "#54493c", rug: "#3f577b", glow: "#b8f4ff", accent2: "#5ab8e8" },
   };
   const accent = accentPalette[level] || accentPalette[1];
 
+  // 外壁 + 内部仕切り壁（寝室エリア ↔ リビングエリア）
   houseState.walls = [
     { x: 0, y: 0, width: roomWidth, height: 28 },
     { x: 0, y: roomHeight - 28, width: roomWidth, height: 28 },
     { x: 0, y: 0, width: 28, height: roomHeight },
     { x: roomWidth - 28, y: 0, width: 28, height: roomHeight },
-    { x: 188, y: 182, width: 212, height: 32 },
-    { x: 512, y: 126, width: 210, height: 26 },
-    { x: 638, y: 362, width: 152, height: 34 },
+    // 仕切り壁（左側）：寝室とリビングを分ける（中央に通路）
+    { x: 28, y: 294, width: 138, height: 20 },
+    // 仕切り壁（右側）
+    { x: 316, y: 294, width: roomWidth - 316 - 28, height: 20 },
   ];
+
   houseState.props = [
-    { type: "wall-tone", wall: accent.wall, floor: accent.floor, rug: accent.rug, glow: accent.glow },
-    { type: "bed", x: 88, y: 102, width: 142, height: 92 },
-    { type: "desk", x: roomWidth - 256, y: 146, width: 156, height: 58 },
-    { type: "pc", x: roomWidth - 214, y: 116, width: 72, height: 42, glow: accent.glow },
-    { type: "chair", x: roomWidth - 192, y: 212, width: 42, height: 42 },
-    { type: "sofa", x: 436, y: roomHeight - 196, width: 184, height: 74 },
-    { type: "plant", x: roomWidth - 128, y: roomHeight - 166, width: 28, height: 62 },
-    { type: "shelf", x: 82, y: 250, width: 86, height: 116 },
+    { type: "wall-tone", wall: accent.wall, wallDark: accent.wallDark, floor: accent.floor, floorDark: accent.floorDark, rug: accent.rug, glow: accent.glow, accent2: accent.accent2 },
+    // ── 寝室エリア (左上) ──
+    { type: "bed", x: 50, y: 46, width: 170, height: 108 },
+    { type: "nightstand", x: 50, y: 164, width: 54, height: 54, glow: accent.glow },
+    { type: "lamp", x: 236, y: 44, width: 26, height: 66, glow: accent.glow },
+    // ── 作業エリア (右上) ──
+    { type: "shelf", x: 506, y: 40, width: 84, height: 140 },
+    { type: "desk", x: 720, y: 50, width: 172, height: 66 },
+    { type: "pc", x: 752, y: 26, width: 80, height: 46, glow: accent.glow },
+    { type: "chair", x: 784, y: 122, width: 48, height: 48 },
+    // ── リビングエリア (中央下) ──
+    { type: "tv", x: 312, y: 312, width: 220, height: 30 },
+    { type: "coffeeTable", x: 382, y: 356, width: 126, height: 58 },
+    { type: "sofa", x: 326, y: 424, width: 222, height: 86 },
+    { type: "plant", x: 844, y: 440, width: 30, height: 72 },
+    { type: "plant", x: 64, y: 466, width: 26, height: 60 },
+    // ── 玄関ドア (左下) ──
+    { type: "door", x: 48, y: 562, width: 112, height: 26 },
   ];
-  houseState.pcZone = { x: roomWidth - 244, y: 116, width: 132, height: 112 };
-  houseState.exitZone = { x: 54, y: roomHeight - 94, width: 122, height: 42 };
-  houseState.player.x = 126;
-  houseState.player.y = roomHeight - 126;
+
+  houseState.pcZone = { x: 718, y: 26, width: 156, height: 118 };
+  houseState.exitZone = { x: 46, y: 546, width: 120, height: 50 };
+  houseState.player.x = 480;
+  houseState.player.y = 420;
   houseState.player.direction = "right";
 }
 
@@ -2351,7 +2657,10 @@ function enterOwnedHouse() {
   createHouseInteriorLayout();
   updateOverlayMode();
   updateHUD();
-  showToast("家に入りました。PCの前で E を押すと配信できます");
+  showToast("家に入りました。自動で配信を開始します");
+  if (gameState.house.cooldown <= 0 && !gameState.house.streaming) {
+    startHouseStream();
+  }
 }
 
 function exitOwnedHouse() {
@@ -2401,6 +2710,8 @@ function resolveStreamPayout(streamState) {
 
   const totalIncome = baseIncome + bonusIncome + viralIncome;
   addMoney(totalIncome, `配信収益 Lv${streamState.level}`, { source: "job" });
+  gameState.house.totalEarned = (gameState.house.totalEarned || 0) + totalIncome;
+  gameState.house.streamCount = (gameState.house.streamCount || 0) + 1;
   gameState.house.cooldown = ECONOMY.streaming.cooldownSeconds;
   gameState.house.streaming = {
     ...streamState,
@@ -2757,6 +3068,7 @@ function endTaxiJob(force = false) {
   updateHUD();
   showToast(`タクシー業務終了: 純利益 ${formatCurrency(summaryProfit)}`);
   resetTaxiState();
+  updateButtonState();
   updateHUD();
 }
 
@@ -2949,6 +3261,30 @@ function isOpsMissionActive() {
 
 function isInteriorMode() {
   return gameState.currentMode === "interior";
+}
+
+function isCombatMusicActive() {
+  if (isCashoutMissionActive() && mission.stage === "cashoutBank" && mission.cashoutCombat) {
+    return true;
+  }
+
+  return isSpecialMissionActive() && isInteriorMode();
+}
+
+function getCurrentMusicTrack() {
+  if (isCombatMusicActive()) {
+    return "gun";
+  }
+  if (gameState.ridingVehicleId) {
+    return "car";
+  }
+  return "bgm";
+}
+
+function updateSceneMusic() {
+  if (!AudioEngine.isMuted()) {
+    AudioEngine.setMusic(getCurrentMusicTrack());
+  }
 }
 
 function updateOverlayMode() {
@@ -3351,7 +3687,7 @@ function updateShopInteraction() {
       return;
     }
     if (nearExit) {
-      setTextContent(interactionStatusLabel, "E EXIT: 外へ出る");
+      setTextContent(interactionStatusLabel, "玄関 → 外へ出る");
       return;
     }
     setTextContent(interactionStatusLabel, "家の中を移動中");
@@ -3578,6 +3914,9 @@ function updatePhoneScreen() {
   if (housingAppScreen) {
     housingAppScreen.classList.toggle("hidden", gameState.currentPhoneScreen !== "housing");
   }
+  if (premiumAppScreen) {
+    premiumAppScreen.classList.toggle("hidden", gameState.currentPhoneScreen !== "premium");
+  }
 
   updatePhoneMapPlayerPin();
   updatePhoneScrollIndicator();
@@ -3647,6 +3986,8 @@ function getPhoneScreenElement(screen) {
       return specialOpsScreen;
     case "housing":
       return housingAppScreen;
+    case "premium":
+      return premiumAppScreen;
     default:
       return null;
   }
@@ -5113,7 +5454,7 @@ function updateNavigationGuide() {
   if (isHouseMode()) {
     const nearPc = rectContainsPoint(houseState.pcZone, houseState.player.x, houseState.player.y);
     currentTargetArrowLabel.textContent = nearPc ? "●" : "⇢";
-    currentTargetLabel.textContent = nearPc ? "PCで配信開始" : "PCか出口へ向かう";
+    currentTargetLabel.textContent = nearPc ? "E: 配信開始 / PC収益確認" : "PCか玄関ドアへ向かう";
     return;
   }
 
@@ -5142,6 +5483,7 @@ function updateButtonState() {
   setDisabled(taxiButton, mission.active);
   setDisabled(specialOpsButton, busy && !(mission.type === "smallMission" || mission.type === "special" || mission.type === "rescue" || mission.type === "cashout"));
   setDisabled(housingButton, false);
+  setDisabled(premiumButton, false);
   setDisabled(mapHomeButton, false);
   setDisabled(foodHomeButton, false);
   setDisabled(vehicleHomeButton, false);
@@ -5149,6 +5491,7 @@ function updateButtonState() {
   setDisabled(taxiHomeButton, false);
   setDisabled(specialHomeButton, false);
   setDisabled(housingHomeButton, false);
+  setDisabled(premiumHomeButton, false);
   updateTaxiButtons();
 }
 
@@ -8417,90 +8760,414 @@ function updateHousePlayer(deltaTime) {
   if (!houseCircleHitsWall(houseState.player.x, nextY, houseState.player.radius)) {
     houseState.player.y = nextY;
   }
+
+  // 出口ゾーンに入ったら自動退出
+  if (rectContainsPoint(houseState.exitZone, houseState.player.x, houseState.player.y)) {
+    exitOwnedHouse();
+  }
 }
 
 function drawHouseInterior() {
   const ownedHouse = getOwnedHouse() || getHouseLevelConfig(1);
   const tone = houseState.props.find((prop) => prop.type === "wall-tone");
   const streamState = gameState.house.streaming;
+  const nearPc = rectContainsPoint(houseState.pcZone, houseState.player.x, houseState.player.y);
   ctx.textAlign = "left";
 
+  // ── 背景：壁（上半分）+ 床（下半分）──
   ctx.clearRect(0, 0, VIEWPORT.width, VIEWPORT.height);
-  const wallGradient = ctx.createLinearGradient(0, 0, 0, VIEWPORT.height);
-  wallGradient.addColorStop(0, tone?.wall || "#4f5c67");
-  wallGradient.addColorStop(1, "#232838");
-  ctx.fillStyle = wallGradient;
-  ctx.fillRect(0, 0, VIEWPORT.width, VIEWPORT.height);
 
-  ctx.fillStyle = tone?.floor || "#7e7365";
-  ctx.fillRect(0, VIEWPORT.height * 0.34, VIEWPORT.width, VIEWPORT.height * 0.66);
-  ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
-  for (let y = VIEWPORT.height * 0.34; y < VIEWPORT.height; y += 28) {
-    ctx.fillRect(0, y, VIEWPORT.width, 1);
+  // 壁面グラデーション（上半分）
+  const wallGradient = ctx.createLinearGradient(0, 0, 0, VIEWPORT.height * 0.48);
+  wallGradient.addColorStop(0, tone?.wallDark || "#272f38");
+  wallGradient.addColorStop(1, tone?.wall || "#4f5c67");
+  ctx.fillStyle = wallGradient;
+  ctx.fillRect(0, 0, VIEWPORT.width, VIEWPORT.height * 0.48);
+
+  // 床面グラデーション（下半分）
+  const floorGradient = ctx.createLinearGradient(0, VIEWPORT.height * 0.48, 0, VIEWPORT.height);
+  floorGradient.addColorStop(0, tone?.floor || "#7e7365");
+  floorGradient.addColorStop(1, tone?.floorDark || "#48443e");
+  ctx.fillStyle = floorGradient;
+  ctx.fillRect(0, VIEWPORT.height * 0.48, VIEWPORT.width, VIEWPORT.height * 0.52);
+
+  // 床の木目ライン
+  ctx.fillStyle = "rgba(0,0,0,0.07)";
+  for (let fy = VIEWPORT.height * 0.48; fy < VIEWPORT.height - 28; fy += 22) {
+    ctx.fillRect(28, fy, VIEWPORT.width - 56, 1.5);
   }
 
+  // 天井の縁取り
+  ctx.fillStyle = "rgba(255,255,255,0.05)";
+  ctx.fillRect(28, 28, VIEWPORT.width - 56, 4);
+
+  // 壁面の窓（上部中央）
+  ctx.save();
+  ctx.fillStyle = "rgba(180,220,255,0.18)";
+  roundRect(ctx, 380, 32, 200, 58, 8);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(200,230,255,0.35)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // 窓の桟
+  ctx.strokeStyle = "rgba(200,230,255,0.22)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(480, 32); ctx.lineTo(480, 90);
+  ctx.moveTo(380, 61); ctx.lineTo(580, 61);
+  ctx.stroke();
+  // 窓の光
+  ctx.fillStyle = "rgba(180,230,255,0.08)";
+  ctx.fillRect(28, 90, VIEWPORT.width - 56, 60);
+  ctx.restore();
+
+  // ラグ（リビングエリア）
+  ctx.save();
+  ctx.fillStyle = tone?.rug || "#375a49";
+  ctx.globalAlpha = 0.85;
+  roundRect(ctx, 284, 316, 332, 200, 24);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  // ラグの模様
+  ctx.strokeStyle = "rgba(255,255,255,0.1)";
+  ctx.lineWidth = 2;
+  roundRect(ctx, 296, 328, 308, 176, 18);
+  ctx.stroke();
+  ctx.restore();
+
+  // ── 家具プロップ描画 ──
   houseState.props.forEach((prop) => {
     if (prop.type === "bed") {
-      ctx.fillStyle = "#ddd7d1";
-      roundRect(ctx, prop.x, prop.y, prop.width, prop.height, 18);
+      // ベッドフレーム
+      ctx.fillStyle = "#4a3828";
+      roundRect(ctx, prop.x, prop.y, prop.width, prop.height, 14);
       ctx.fill();
-      ctx.fillStyle = "#52728a";
-      roundRect(ctx, prop.x + 14, prop.y + 12, prop.width - 28, prop.height - 24, 14);
+      // マットレス
+      ctx.fillStyle = "#ddd8d2";
+      roundRect(ctx, prop.x + 8, prop.y + 8, prop.width - 16, prop.height - 16, 10);
       ctx.fill();
-    } else if (prop.type === "desk") {
-      ctx.fillStyle = "#5a4133";
-      roundRect(ctx, prop.x, prop.y, prop.width, prop.height, 12);
+      // 掛け布団
+      ctx.fillStyle = "#5a7a96";
+      roundRect(ctx, prop.x + 8, prop.y + 36, prop.width - 16, prop.height - 44, 10);
       ctx.fill();
-    } else if (prop.type === "pc") {
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      roundRect(ctx, prop.x + 8, prop.y + 36, prop.width - 16, prop.height - 44, 10);
+      ctx.fill();
+      // 枕
+      ctx.fillStyle = "#e8e2dc";
+      roundRect(ctx, prop.x + 16, prop.y + 10, prop.width - 32, 22, 8);
+      ctx.fill();
+      // ヘッドボード
+      ctx.fillStyle = "#3a2a1a";
+      roundRect(ctx, prop.x, prop.y, prop.width, 16, 8);
+      ctx.fill();
+
+    } else if (prop.type === "nightstand") {
+      ctx.fillStyle = "#4a3828";
+      roundRect(ctx, prop.x, prop.y, prop.width, prop.height, 8);
+      ctx.fill();
+      // 引き出し
+      ctx.fillStyle = "rgba(255,255,255,0.07)";
+      roundRect(ctx, prop.x + 6, prop.y + 8, prop.width - 12, 18, 4);
+      ctx.fill();
+      roundRect(ctx, prop.x + 6, prop.y + 30, prop.width - 12, 18, 4);
+      ctx.fill();
+      // ランプ光
       ctx.save();
-      ctx.shadowColor = prop.glow;
-      ctx.shadowBlur = streamState && !streamState.complete ? 24 : 16;
-      ctx.fillStyle = streamState && !streamState.complete ? "#b7ffde" : "#8cdfff";
+      ctx.shadowColor = prop.glow || "#ffcf7a";
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = prop.glow || "#ffcf7a";
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.arc(prop.x + prop.width / 2, prop.y - 8, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
+
+    } else if (prop.type === "lamp") {
+      // ポール
+      ctx.fillStyle = "#888";
+      ctx.fillRect(prop.x + 11, prop.y + 20, 4, prop.height - 20);
+      // ベース
+      ctx.fillStyle = "#555";
+      roundRect(ctx, prop.x, prop.y + prop.height - 8, prop.width, 8, 4);
+      ctx.fill();
+      // シェード
+      ctx.save();
+      ctx.shadowColor = prop.glow || "#ffcf7a";
+      ctx.shadowBlur = 22;
+      ctx.fillStyle = prop.glow || "#ffcf7a";
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.arc(prop.x + 13, prop.y + 12, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.15;
+      ctx.beginPath();
+      ctx.arc(prop.x + 13, prop.y + 12, 32, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
+
+    } else if (prop.type === "shelf") {
+      ctx.fillStyle = "#5a3e2e";
+      roundRect(ctx, prop.x, prop.y, prop.width, prop.height, 8);
+      ctx.fill();
+      // 棚板
+      ctx.fillStyle = "#7a5642";
+      ctx.fillRect(prop.x + 4, prop.y + 26, prop.width - 8, 5);
+      ctx.fillRect(prop.x + 4, prop.y + 62, prop.width - 8, 5);
+      ctx.fillRect(prop.x + 4, prop.y + 98, prop.width - 8, 5);
+      // 装飾品（小物）
+      ctx.fillStyle = "#c87a4e";
+      roundRect(ctx, prop.x + 10, prop.y + 8, 14, 18, 3);
+      ctx.fill();
+      ctx.fillStyle = "#7ab87a";
+      roundRect(ctx, prop.x + 30, prop.y + 8, 10, 18, 3);
+      ctx.fill();
+      ctx.fillStyle = "#8ab4d4";
+      roundRect(ctx, prop.x + 46, prop.y + 10, 12, 16, 3);
+      ctx.fill();
+      ctx.fillStyle = "#d4b48a";
+      roundRect(ctx, prop.x + 8, prop.y + 44, 16, 18, 3);
+      ctx.fill();
+      ctx.fillStyle = "#9a7ab4";
+      roundRect(ctx, prop.x + 30, prop.y + 44, 12, 18, 3);
+      ctx.fill();
+
+    } else if (prop.type === "desk") {
+      // 机天板
+      ctx.fillStyle = "#6a4d38";
       roundRect(ctx, prop.x, prop.y, prop.width, prop.height, 10);
+      ctx.fill();
+      // ハイライト
+      ctx.fillStyle = "rgba(255,255,255,0.06)";
+      roundRect(ctx, prop.x + 6, prop.y + 4, prop.width - 12, 10, 5);
+      ctx.fill();
+      // 脚
+      ctx.fillStyle = "#3a2a1a";
+      ctx.fillRect(prop.x + 8, prop.y + prop.height - 4, 16, 8);
+      ctx.fillRect(prop.x + prop.width - 24, prop.y + prop.height - 4, 16, 8);
+
+    } else if (prop.type === "pc") {
+      const isLive = streamState && !streamState.complete;
+      // モニターフレーム
+      ctx.save();
+      ctx.shadowColor = isLive ? "#ff5aab" : prop.glow;
+      ctx.shadowBlur = isLive ? 28 : 18;
+      ctx.fillStyle = "#1a1a2e";
+      roundRect(ctx, prop.x, prop.y, prop.width, prop.height, 8);
       ctx.fill();
       ctx.restore();
-      ctx.fillStyle = "#06111e";
-      roundRect(ctx, prop.x + 6, prop.y + 6, prop.width - 12, prop.height - 12, 8);
-      ctx.fill();
-      if (streamState && !streamState.complete) {
-        ctx.fillStyle = "#ff5aab";
-        ctx.font = "bold 12px sans-serif";
-        ctx.fillText("LIVE", prop.x + 20, prop.y + 24);
+      // 画面
+      const screenGrad = ctx.createLinearGradient(prop.x + 6, prop.y + 5, prop.x + 6, prop.y + prop.height - 5);
+      if (isLive) {
+        screenGrad.addColorStop(0, "#1a2e1a");
+        screenGrad.addColorStop(1, "#0a180a");
+      } else {
+        screenGrad.addColorStop(0, "#0d1825");
+        screenGrad.addColorStop(1, "#060e18");
       }
+      ctx.fillStyle = screenGrad;
+      roundRect(ctx, prop.x + 5, prop.y + 5, prop.width - 10, prop.height - 10, 6);
+      ctx.fill();
+      if (isLive) {
+        // 配信画面
+        ctx.fillStyle = "rgba(0,255,80,0.12)";
+        roundRect(ctx, prop.x + 5, prop.y + 5, prop.width - 10, prop.height - 10, 6);
+        ctx.fill();
+        ctx.save();
+        ctx.shadowColor = "#ff5aab";
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = "#ff5aab";
+        ctx.font = "bold 10px monospace";
+        ctx.fillText("● LIVE", prop.x + 10, prop.y + 20);
+        ctx.restore();
+        ctx.fillStyle = "rgba(150,255,150,0.7)";
+        ctx.font = "9px monospace";
+        ctx.fillText(`${streamState.viewers}人`, prop.x + 10, prop.y + 34);
+      } else {
+        ctx.fillStyle = prop.glow || "#8cdfff";
+        ctx.globalAlpha = 0.6;
+        ctx.font = "9px monospace";
+        ctx.fillText("READY", prop.x + 14, prop.y + 26);
+        ctx.globalAlpha = 1;
+      }
+      // スタンド
+      ctx.fillStyle = "#222";
+      ctx.fillRect(prop.x + prop.width / 2 - 6, prop.y + prop.height, 12, 6);
+      ctx.fillRect(prop.x + prop.width / 2 - 14, prop.y + prop.height + 6, 28, 4);
+
     } else if (prop.type === "chair") {
-      ctx.fillStyle = "#39475b";
+      // 座面
+      ctx.fillStyle = "#2a3545";
+      roundRect(ctx, prop.x, prop.y + 14, prop.width, prop.height - 14, 10);
+      ctx.fill();
+      // 背もたれ
+      ctx.fillStyle = "#354260";
+      roundRect(ctx, prop.x + 4, prop.y, prop.width - 8, 20, 6);
+      ctx.fill();
+      // ハイライト
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      roundRect(ctx, prop.x + 8, prop.y + 16, prop.width - 16, 10, 5);
+      ctx.fill();
+
+    } else if (prop.type === "tv") {
+      // テレビフレーム
+      ctx.fillStyle = "#111118";
+      roundRect(ctx, prop.x, prop.y, prop.width, prop.height, 6);
+      ctx.fill();
+      // 画面
+      const tvGrad = ctx.createLinearGradient(prop.x + 5, prop.y + 3, prop.x + prop.width - 5, prop.y + prop.height - 3);
+      tvGrad.addColorStop(0, "#1a2535");
+      tvGrad.addColorStop(1, "#0d1520");
+      ctx.fillStyle = tvGrad;
+      roundRect(ctx, prop.x + 4, prop.y + 3, prop.width - 8, prop.height - 6, 4);
+      ctx.fill();
+      // 画面グロー
+      ctx.fillStyle = "rgba(60,140,255,0.12)";
+      roundRect(ctx, prop.x + 4, prop.y + 3, prop.width - 8, prop.height - 6, 4);
+      ctx.fill();
+      // 電源ランプ
+      ctx.save();
+      ctx.shadowColor = "#79ffb5";
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = "#79ffb5";
+      ctx.beginPath();
+      ctx.arc(prop.x + prop.width - 10, prop.y + prop.height / 2, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      // スタンド
+      ctx.fillStyle = "#1a1a22";
+      ctx.fillRect(prop.x + prop.width / 2 - 20, prop.y + prop.height, 40, 6);
+
+    } else if (prop.type === "coffeeTable") {
+      // テーブル天板
+      ctx.fillStyle = "#7a5840";
       roundRect(ctx, prop.x, prop.y, prop.width, prop.height, 10);
       ctx.fill();
-    } else if (prop.type === "sofa") {
-      ctx.fillStyle = "#2f4a61";
-      roundRect(ctx, prop.x, prop.y, prop.width, prop.height, 18);
+      ctx.fillStyle = "rgba(255,255,255,0.07)";
+      roundRect(ctx, prop.x + 6, prop.y + 5, prop.width - 12, prop.height - 10, 7);
       ctx.fill();
+      // コーヒーカップ
+      ctx.fillStyle = "#e8d8c4";
+      ctx.beginPath();
+      ctx.arc(prop.x + 36, prop.y + prop.height / 2, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#6a3820";
+      ctx.beginPath();
+      ctx.arc(prop.x + 36, prop.y + prop.height / 2, 7, 0, Math.PI * 2);
+      ctx.fill();
+      // リモコン
+      ctx.fillStyle = "#2a2a36";
+      roundRect(ctx, prop.x + prop.width - 44, prop.y + 10, 26, 38, 5);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.18)";
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.arc(prop.x + prop.width - 31, prop.y + 20 + i * 10, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+    } else if (prop.type === "sofa") {
+      // ソファフレーム
+      ctx.fillStyle = "#1e3248";
+      roundRect(ctx, prop.x, prop.y, prop.width, prop.height, 16);
+      ctx.fill();
+      // 座面クッション
+      ctx.fillStyle = "#2a4560";
+      roundRect(ctx, prop.x + 8, prop.y + 26, prop.width - 16, prop.height - 34, 12);
+      ctx.fill();
+      // クッション区切り
+      ctx.fillStyle = "rgba(0,0,0,0.2)";
+      ctx.fillRect(prop.x + prop.width / 3, prop.y + 26, 2, prop.height - 34);
+      ctx.fillRect(prop.x + (prop.width / 3) * 2, prop.y + 26, 2, prop.height - 34);
+      // 背もたれ
+      ctx.fillStyle = "#243a52";
+      roundRect(ctx, prop.x + 6, prop.y, prop.width - 12, 28, 12);
+      ctx.fill();
+      // アームレスト
+      ctx.fillStyle = "#1a2e42";
+      roundRect(ctx, prop.x, prop.y + 8, 16, prop.height - 16, 8);
+      ctx.fill();
+      roundRect(ctx, prop.x + prop.width - 16, prop.y + 8, 16, prop.height - 16, 8);
+      ctx.fill();
+      // ハイライト
+      ctx.fillStyle = "rgba(255,255,255,0.06)";
+      roundRect(ctx, prop.x + 8, prop.y + 28, prop.width - 16, 12, 6);
+      ctx.fill();
+
     } else if (prop.type === "plant") {
-      ctx.fillStyle = "#5d4638";
-      ctx.fillRect(prop.x + 4, prop.y + 34, 20, 24);
+      // 植木鉢
+      ctx.fillStyle = "#7a5040";
+      roundRect(ctx, prop.x + 3, prop.y + prop.height - 22, prop.width - 6, 22, 4);
+      ctx.fill();
+      ctx.fillStyle = "#8a6050";
+      ctx.fillRect(prop.x + 1, prop.y + prop.height - 24, prop.width - 2, 4);
+      // 幹
+      ctx.fillStyle = "#5a3a28";
+      ctx.fillRect(prop.x + prop.width / 2 - 3, prop.y + 28, 6, prop.height - 50);
+      // 葉
+      ctx.save();
+      ctx.shadowColor = "#5ea36e";
+      ctx.shadowBlur = 8;
       ctx.fillStyle = "#5ea36e";
       ctx.beginPath();
-      ctx.arc(prop.x + 14, prop.y + 18, 18, 0, Math.PI * 2);
+      ctx.arc(prop.x + prop.width / 2, prop.y + 16, prop.width / 2 - 2, 0, Math.PI * 2);
       ctx.fill();
-    } else if (prop.type === "shelf") {
-      ctx.fillStyle = "#64493d";
-      roundRect(ctx, prop.x, prop.y, prop.width, prop.height, 10);
+      ctx.fillStyle = "#4a8a5a";
+      ctx.beginPath();
+      ctx.arc(prop.x + prop.width / 2 + 4, prop.y + 22, prop.width / 2 - 6, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
-      ctx.fillRect(prop.x + 10, prop.y + 30, prop.width - 20, 6);
-      ctx.fillRect(prop.x + 10, prop.y + 68, prop.width - 20, 6);
+      ctx.restore();
+
+    } else if (prop.type === "door") {
+      // ドア枠
+      ctx.fillStyle = "#2a1e10";
+      roundRect(ctx, prop.x - 6, prop.y - 4, prop.width + 12, prop.height + 10, 5);
+      ctx.fill();
+      // ドア本体
+      ctx.fillStyle = "#7a5230";
+      roundRect(ctx, prop.x, prop.y, prop.width, prop.height, 5);
+      ctx.fill();
+      // パネル装飾
+      ctx.fillStyle = "rgba(0,0,0,0.15)";
+      roundRect(ctx, prop.x + 8, prop.y + 3, prop.width / 2 - 12, prop.height - 6, 3);
+      ctx.fill();
+      roundRect(ctx, prop.x + prop.width / 2 + 4, prop.y + 3, prop.width / 2 - 12, prop.height - 6, 3);
+      ctx.fill();
+      // ドアノブ
+      ctx.save();
+      ctx.shadowColor = "#d4a84e";
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = "#d4a84e";
+      ctx.beginPath();
+      ctx.arc(prop.x + prop.width - 16, prop.y + prop.height / 2, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      // 光の差し込み
+      ctx.save();
+      ctx.globalAlpha = 0.1;
+      ctx.fillStyle = "#ffe080";
+      ctx.fillRect(prop.x - 6, prop.y - 18, prop.width + 12, 18);
+      ctx.globalAlpha = 1;
+      ctx.restore();
     }
   });
 
-  ctx.fillStyle = tone?.rug || "#375a49";
-  roundRect(ctx, 300, 364, 280, 160, 28);
-  ctx.fill();
-
+  // ── 壁（外壁 + 仕切り壁）──
   houseState.walls.forEach((wall) => {
-    ctx.fillStyle = "rgba(18, 22, 30, 0.86)";
+    ctx.fillStyle = "rgba(14, 18, 26, 0.92)";
     ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
   });
 
+  // 仕切り壁の上端ハイライト（仕切り壁のみ: index 4, 5）
+  [houseState.walls[4], houseState.walls[5]].forEach((wall) => {
+    if (!wall) return;
+    ctx.fillStyle = "rgba(255,255,255,0.07)";
+    ctx.fillRect(wall.x, wall.y, wall.width, 2);
+  });
+
+  // ── プレイヤー ──
   ctx.save();
   ctx.translate(houseState.player.x, houseState.player.y);
   if (houseState.player.direction === "left") {
@@ -8510,9 +9177,9 @@ function drawHouseInterior() {
   } else if (houseState.player.direction === "up") {
     ctx.rotate(Math.PI);
   }
-  ctx.fillStyle = "rgba(0, 0, 0, 0.24)";
+  ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
   ctx.beginPath();
-  ctx.ellipse(0, 8, 10, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 10, 10, 5, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = "#1fb7aa";
   roundRect(ctx, -7, -8, 14, 16, 5);
@@ -8527,55 +9194,101 @@ function drawHouseInterior() {
   ctx.fill();
   ctx.restore();
 
+  // ── 左上：部屋情報パネル ──
   ctx.save();
-  ctx.fillStyle = "rgba(8, 12, 19, 0.8)";
-  roundRect(ctx, 20, 20, 362, 112, 16);
+  ctx.fillStyle = "rgba(8, 12, 19, 0.82)";
+  roundRect(ctx, 18, 18, 370, streamState ? 124 : 104, 14);
   ctx.fill();
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+  ctx.lineWidth = 1;
   ctx.stroke();
   ctx.fillStyle = "#eef8ff";
-  ctx.font = "bold 15px sans-serif";
-  ctx.fillText(`${ownedHouse?.label || "ボロ屋"} / 配信拠点`, 36, 46);
-  ctx.fillStyle = "rgba(238, 244, 255, 0.76)";
+  ctx.font = "bold 14px sans-serif";
+  ctx.fillText(`${ownedHouse?.label || "ボロ屋"}  /  配信拠点`, 34, 44);
+  ctx.fillStyle = "rgba(238, 244, 255, 0.68)";
   ctx.font = "12px sans-serif";
-  ctx.fillText(`配信収益 ${getStreamIncomeRange()} / 視聴者 ${getStreamViewerRange()}`, 36, 70);
-  ctx.fillText("PC前で E: 配信開始 / 玄関で E: 外へ出る", 36, 92);
+  ctx.fillText(`配信収益 ${getStreamIncomeRange()} / 視聴者 ${getStreamViewerRange()}`, 34, 66);
+  ctx.fillText("PC前: E で配信  /  玄関ドアに近づくと外へ出る", 34, 86);
   if (streamState && !streamState.complete) {
     ctx.fillStyle = "#79ffb5";
     ctx.font = "bold 13px sans-serif";
-    ctx.fillText(`配信中... ${streamState.viewers} viewers`, 36, 114);
+    ctx.fillText(`● 配信中... ${streamState.viewers} 視聴者`, 34, 110);
   } else if (streamState?.complete) {
     ctx.fillStyle = "#ffd866";
     ctx.font = "bold 13px sans-serif";
-    ctx.fillText(`収益 ${streamState.liveLabel}`, 36, 114);
+    ctx.fillText(`収益確定 ${streamState.liveLabel}`, 34, 110);
   }
   ctx.restore();
 
+  // ── 右上：配信ステータスパネル（配信中のみ）──
   if (streamState) {
     ctx.save();
-    ctx.fillStyle = "rgba(9, 12, 19, 0.86)";
-    roundRect(ctx, VIEWPORT.width - 240, 24, 204, 110, 16);
+    ctx.fillStyle = "rgba(9, 12, 22, 0.9)";
+    roundRect(ctx, VIEWPORT.width - 248, 18, 220, 124, 14);
     ctx.fill();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+    ctx.strokeStyle = streamState.complete ? "rgba(255,216,102,0.3)" : "rgba(255,90,171,0.3)";
+    ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.fillStyle = streamState.complete ? "#ffd866" : "#ff7fb4";
-    ctx.font = "bold 14px sans-serif";
-    ctx.fillText(streamState.complete ? "STREAM RESULT" : "LIVE NOW", VIEWPORT.width - 218, 48);
+    ctx.font = "bold 13px sans-serif";
+    ctx.fillText(streamState.complete ? "▶ STREAM RESULT" : "● LIVE NOW", VIEWPORT.width - 228, 44);
     ctx.fillStyle = "#f5fbff";
-    ctx.font = "bold 26px sans-serif";
-    ctx.fillText(String(streamState.viewers || 0), VIEWPORT.width - 218, 82);
-    ctx.font = "12px sans-serif";
-    ctx.fillText("視聴者数", VIEWPORT.width - 120, 82);
-    ctx.fillText(streamState.liveLabel, VIEWPORT.width - 218, 108);
+    ctx.font = "bold 30px sans-serif";
+    ctx.fillText(String(streamState.viewers || 0), VIEWPORT.width - 228, 84);
+    ctx.font = "11px sans-serif";
+    ctx.fillStyle = "rgba(220,240,255,0.7)";
+    ctx.fillText("視聴者数", VIEWPORT.width - 130, 84);
+    ctx.fillStyle = "#f5fbff";
+    ctx.font = "13px sans-serif";
+    ctx.fillText(streamState.liveLabel, VIEWPORT.width - 228, 112);
     ctx.restore();
   }
 
+  // ── PC近傍：収益ダッシュボード ──
+  if (nearPc && !streamState) {
+    ctx.save();
+    ctx.fillStyle = "rgba(6, 10, 20, 0.92)";
+    roundRect(ctx, VIEWPORT.width - 258, VIEWPORT.height - 182, 230, 162, 14);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(100,200,255,0.25)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = tone?.glow || "#8cdfff";
+    ctx.font = "bold 13px sans-serif";
+    ctx.fillText("PC  収益ダッシュボード", VIEWPORT.width - 238, VIEWPORT.height - 154);
+    ctx.fillStyle = "rgba(200,240,255,0.55)";
+    ctx.fillRect(VIEWPORT.width - 238, VIEWPORT.height - 148, 190, 1);
+    ctx.fillStyle = "rgba(220,244,255,0.8)";
+    ctx.font = "12px sans-serif";
+    ctx.fillText(`配信回数: ${gameState.house.streamCount || 0} 回`, VIEWPORT.width - 238, VIEWPORT.height - 126);
+    ctx.fillText(`累計収益: ${formatCurrency(gameState.house.totalEarned || 0)}`, VIEWPORT.width - 238, VIEWPORT.height - 104);
+    ctx.fillText(`配信レベル: Lv${gameState.house.level}`, VIEWPORT.width - 238, VIEWPORT.height - 82);
+    ctx.fillText(`視聴者数: ${getStreamViewerRange()}`, VIEWPORT.width - 238, VIEWPORT.height - 60);
+    if (gameState.house.cooldown > 0) {
+      ctx.fillStyle = "#ffd866";
+      ctx.font = "bold 12px sans-serif";
+      ctx.fillText(`クールダウン: ${gameState.house.cooldown.toFixed(1)} 秒`, VIEWPORT.width - 238, VIEWPORT.height - 36);
+    } else {
+      ctx.fillStyle = "#79ffb5";
+      ctx.font = "bold 12px sans-serif";
+      ctx.fillText("E: 配信開始", VIEWPORT.width - 238, VIEWPORT.height - 36);
+    }
+    ctx.restore();
+  }
+
+  // ── 出口ドア表示 ──
+  const nearExit = rectContainsPoint(houseState.exitZone, houseState.player.x, houseState.player.y);
   ctx.save();
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
+  if (nearExit) {
+    ctx.shadowColor = "#ffe080";
+    ctx.shadowBlur = 18;
+  }
+  ctx.strokeStyle = nearExit ? "rgba(255,224,128,0.7)" : "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 1.5;
   ctx.strokeRect(houseState.exitZone.x, houseState.exitZone.y, houseState.exitZone.width, houseState.exitZone.height);
-  ctx.fillStyle = "#e7f7ff";
-  ctx.font = "bold 12px sans-serif";
-  ctx.fillText("EXIT", houseState.exitZone.x + 38, houseState.exitZone.y - 8);
+  ctx.fillStyle = nearExit ? "#ffe080" : "#c8e8ff";
+  ctx.font = `bold ${nearExit ? 13 : 11}px sans-serif`;
+  ctx.fillText("EXIT", houseState.exitZone.x + 36, houseState.exitZone.y - 6);
   ctx.restore();
 }
 
@@ -8656,6 +9369,7 @@ function gameLoop(timestamp) {
   updateParticles(deltaTime);
   updateScreenShake(deltaTime);
   trackFootstep(deltaTime);
+  updateSceneMusic();
   updateNavigationGuide();
   updatePhoneMapPlayerPin();
   updateHUD();
@@ -8705,6 +9419,9 @@ if (specialOpsButton) {
 if (housingButton) {
   housingButton.addEventListener("click", () => openPhoneScreen("housing"));
 }
+if (premiumButton) {
+  premiumButton.addEventListener("click", () => openPhoneScreen("premium"));
+}
 if (mapHomeButton) {
   mapHomeButton.addEventListener("click", () => openPhoneScreen("home"));
 }
@@ -8726,6 +9443,9 @@ if (specialHomeButton) {
 if (housingHomeButton) {
   housingHomeButton.addEventListener("click", () => openPhoneScreen("home"));
 }
+if (premiumHomeButton) {
+  premiumHomeButton.addEventListener("click", () => openPhoneScreen("home"));
+}
 
 [
   phoneHomeScreen,
@@ -8736,6 +9456,7 @@ if (housingHomeButton) {
   vehicleAppScreen,
   specialOpsScreen,
   housingAppScreen,
+  premiumAppScreen,
 ].forEach((view) => {
   if (!view) {
     return;
@@ -8981,7 +9702,14 @@ updateEnterShopButton();
 updatePhoneMapPlayerPin();
 updateOverlayMode();
 updateAccountUi();
+renderPremiumShop();
 initializeSupabaseAuth();
+
+["pointerdown", "keydown", "touchstart"].forEach((eventName) => {
+  window.addEventListener(eventName, () => {
+    AudioEngine.primeBgm();
+  }, { once: true });
+});
 
 // Wire up sound toggle button
 const soundToggleBtn = document.getElementById("sound-toggle-button");
