@@ -300,6 +300,16 @@ function saveGameLocal(snapshot = getSaveSnapshot()) {
   } catch (_) {}
 }
 
+function readLocalSaveSnapshot() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (_) {
+    return null;
+  }
+}
+
 function applySaveData(data) {
   if (!data || typeof data.money !== "number") {
     return false;
@@ -326,14 +336,9 @@ function applySaveData(data) {
 }
 
 function loadGame() {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return false;
-    const data = JSON.parse(raw);
-    return applySaveData(data);
-  } catch (_) {
-    return false;
-  }
+  const data = readLocalSaveSnapshot();
+  if (!data) return false;
+  return applySaveData(data);
 }
 
 function clearAuthSession() {
@@ -498,8 +503,8 @@ async function pullCloudSave(showToastOnSuccess = false) {
     updateAccountUi();
     const result = await apiRequest("/save");
     if (result.saveData) {
-      const localSnapshot = getSaveSnapshot();
-      const localSavedAt = Number(localSnapshot.savedAt || 0);
+      const localSnapshot = readLocalSaveSnapshot();
+      const localSavedAt = Number(localSnapshot?.savedAt || 0);
       const cloudSavedAt = Number(result.saveData.savedAt || 0);
 
       if (cloudSavedAt >= localSavedAt) {
