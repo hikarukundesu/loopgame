@@ -2356,6 +2356,87 @@ body {
    ============================================================ */
 @media (pointer: coarse) and (orientation: portrait) {
 
+  /* ── HUD: corner-hud を横1行のコンパクトバーに ─────── */
+  .corner-hud {
+    top: 6px !important;
+    left: 6px !important;
+    right: 110px !important;   /* 🔊・同期ボタンのスペースを確保 */
+    width: auto !important;
+    padding: 7px 10px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-wrap: nowrap;
+  }
+
+  /* 不要な要素を非表示 */
+  .corner-label         { display: none !important; }
+  .money-goal-label     { display: none !important; }
+  .money-change-indicator { display: none !important; }
+  .inventory-status     { display: none !important; }
+  .interaction-status   { display: none !important; }
+  .money-label          { display: none !important; }
+
+  /* 所持金: 横並び・コンパクト */
+  .money-stack {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: baseline !important;
+    gap: 2px !important;
+  }
+
+  #money {
+    font-size: 1rem !important;
+    white-space: nowrap;
+  }
+
+  /* 時間・ミッションステータス: コンパクト */
+  .mini-status {
+    margin-top: 0 !important;
+    padding: 3px 8px !important;
+    font-size: 0.7rem !important;
+    white-space: nowrap;
+  }
+
+  /* target-guide: コントロールバー直上の細いバーに */
+  .target-guide {
+    top: auto !important;
+    left: 6px !important;
+    right: 6px !important;
+    bottom: 154px !important;
+    width: auto !important;
+    transform: none !important;
+    padding: 6px 12px !important;
+    border-radius: 10px !important;
+  }
+
+  .target-guide-topline { margin-bottom: 2px !important; }
+  .target-guide-hint    { display: none !important; }
+  .target-guide-label   { font-size: 0.56rem !important; }
+  .target-guide-main    { gap: 8px !important; }
+  .target-guide-arrow   { font-size: 1.1rem !important; }
+  .target-guide strong  { font-size: 0.8rem !important; margin-top: 0 !important; }
+  .target-guide-subtitle { display: none !important; }
+
+  /* sound・accountボタンはサイズを少し小さく */
+  .sound-toggle-button {
+    width: 34px !important;
+    height: 34px !important;
+    top: 8px !important;
+    right: 8px !important;
+  }
+
+  .account-button {
+    top: 8px !important;
+    right: 50px !important;
+    height: 34px !important;
+    font-size: 0.75rem !important;
+    min-width: 44px !important;
+    padding: 0 10px !important;
+  }
+
   /* ── 下部コントロールバー ─────────────────────────────── */
   .touch-pad {
     display: flex;
@@ -2462,17 +2543,8 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* HUD 調整：コントロールバーと重ならないよう */
-  .enter-shop-button { bottom: 172px; }
-
-  .target-guide {
-    top: 12px !important;
-    left: auto !important;
-    right: 12px !important;
-    bottom: auto !important;
-    width: min(200px, calc(100vw - 24px)) !important;
-    transform: none !important;
-  }
+  /* HUD 調整：target-guide（~62px）+ コントロールバー（148px）の上 */
+  .enter-shop-button { bottom: 224px; }
 
 }
 
