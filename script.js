@@ -9730,7 +9730,6 @@ if (closeWorldMapButton) {
   const joystickZone = document.getElementById("touch-joystick-zone");
   const touchInteractBtn = document.getElementById("touch-interact-btn");
   const touchFireBtn = document.getElementById("touch-fire-btn");
-  const touchPhoneToggleBtn = document.getElementById("touch-phone-toggle");
   const touchPhoneCloseBtn = document.getElementById("touch-phone-close");
   const phonePanelEl = document.querySelector(".phone-panel");
 
@@ -9835,38 +9834,35 @@ if (closeWorldMapButton) {
     touchFireBtn.addEventListener("touchcancel", releaseFire, { passive: false });
   }
 
-  // Phone panel toggle (portrait touch: slides up/down)
-  const isPortraitTouch = () =>
-    window.matchMedia("(pointer: coarse) and (orientation: portrait)").matches;
+  // Phone panel: show / hide in portrait touch mode
+  const touchPhoneBtnEl = document.getElementById("touch-phone-btn");
 
-  function hidePhonePanel() {
+  function openPhonePanel() {
     if (!phonePanelEl) return;
-    phonePanelEl.classList.add("touch-hidden");
-    if (touchPhoneToggleBtn) touchPhoneToggleBtn.textContent = "📱";
+    phonePanelEl.classList.add("touch-open");
   }
 
-  function showPhonePanel() {
+  function closePhonePanel() {
     if (!phonePanelEl) return;
-    phonePanelEl.classList.remove("touch-hidden");
-    if (touchPhoneToggleBtn) touchPhoneToggleBtn.textContent = "▼";
+    phonePanelEl.classList.remove("touch-open");
   }
 
-  if (touchPhoneToggleBtn) {
-    touchPhoneToggleBtn.addEventListener("click", () => {
-      if (!isPortraitTouch()) return;
-      const isHidden = phonePanelEl && phonePanelEl.classList.contains("touch-hidden");
-      isHidden ? showPhonePanel() : hidePhonePanel();
+  // 📱 ボタン（コントロールバー中央）→ トグル
+  if (touchPhoneBtnEl) {
+    touchPhoneBtnEl.addEventListener("click", () => {
+      const isOpen = phonePanelEl && phonePanelEl.classList.contains("touch-open");
+      isOpen ? closePhonePanel() : openPhonePanel();
     });
   }
 
+  // ✕ 閉じるボタン（phone-shell 内）
   if (touchPhoneCloseBtn) {
-    touchPhoneCloseBtn.addEventListener("click", hidePhonePanel);
+    touchPhoneCloseBtn.addEventListener("click", closePhonePanel);
   }
 
-  // When a mission action button is tapped in portrait, hide panel so game is visible
+  // ミッション開始などアクションボタンを押したら自動的にパネルを閉じる
   if (phonePanelEl) {
     phonePanelEl.addEventListener("click", (e) => {
-      if (!isPortraitTouch()) return;
       const target = e.target;
       if (
         target.closest("button") &&
@@ -9874,32 +9870,14 @@ if (closeWorldMapButton) {
         !target.closest(".phone-home-grid") &&
         !target.closest(".touch-phone-close")
       ) {
-        setTimeout(hidePhonePanel, 80);
+        setTimeout(closePhonePanel, 80);
       }
     });
   }
 
-  // Sync toggle icon on orientation change
-  function syncToggleIcon() {
-    if (!touchPhoneToggleBtn) return;
-    if (isPortraitTouch()) {
-      const isHidden = phonePanelEl && phonePanelEl.classList.contains("touch-hidden");
-      touchPhoneToggleBtn.textContent = isHidden ? "📱" : "▼";
-    } else {
-      touchPhoneToggleBtn.textContent = "📱";
-    }
-  }
-
-  syncToggleIcon();
-
+  // 画面回転時はパネルを閉じてリセット
   window.addEventListener("orientationchange", () => {
-    // When rotating to landscape, remove touch-hidden so phone is visible again
-    setTimeout(() => {
-      if (!isPortraitTouch() && phonePanelEl) {
-        phonePanelEl.classList.remove("touch-hidden");
-      }
-      syncToggleIcon();
-    }, 200); // wait for layout to settle
+    setTimeout(closePhonePanel, 150);
   });
 
   // Prevent body scroll while joystick is active

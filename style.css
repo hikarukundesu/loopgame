@@ -2344,142 +2344,150 @@ body {
   background: rgba(30, 50, 90, 0.9);
 }
 
-/* Defaults: all touch elements hidden on non-touch */
+/* Defaults: all touch-only elements hidden on desktop */
 .touch-phone-close { display: none; }
 .touch-phone-toggle { display: none; }
-.touch-pad { display: none; }
+.touch-phone-btn    { display: none; }
+.touch-pad          { display: none; }
 
 /* ============================================================
    PORTRAIT (スマホ縦向き)
-   スマホパネルを画面下に固定。タッチパッドはその上に配置。
+   下部にコントロールバー固定。中央の📱で phone panel をオーバーレイ表示。
    ============================================================ */
 @media (pointer: coarse) and (orientation: portrait) {
 
-  /* ── Phone panel: bottom sheet, visible by default ────── */
-  .phone-panel {
-    position: absolute !important;
-    top: auto !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    transform: translateY(0) !important;
-    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    z-index: 8 !important;
+  /* ── 下部コントロールバー ─────────────────────────────── */
+  .touch-pad {
+    display: flex;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 148px;
+    z-index: 7;
+    pointer-events: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px 18px;
+    background: linear-gradient(to top, rgba(3, 5, 14, 0.92) 55%, transparent);
+  }
+
+  /* ── スマホボタン（中央）────────────────────────────── */
+  .touch-phone-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 10px 12px 20px !important;
-    background: rgba(4, 7, 16, 0.97);
-    border-top: 1px solid rgba(88, 244, 255, 0.14);
+    justify-content: center;
+    gap: 3px;
+    width: 68px;
+    height: 68px;
+    border-radius: 20px;
+    border: 1.5px solid rgba(255, 216, 102, 0.38);
+    background: rgba(255, 216, 102, 0.08);
+    color: #ffd866;
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    backdrop-filter: blur(8px);
+    transition: transform 0.08s ease, background 0.08s ease;
+    box-shadow: 0 4px 18px rgba(255, 216, 102, 0.1);
   }
 
-  /* Slide down to hide */
-  .phone-panel.touch-hidden {
-    transform: translateY(100%) !important;
+  .touch-phone-btn:active {
+    transform: scale(0.91);
+    background: rgba(255, 216, 102, 0.22);
   }
 
-  /* Shrink phone shell to fit portrait layout */
-  .phone-shell {
-    width: min(272px, 86vw) !important;
-    border-radius: 22px !important;
+  .touch-phone-btn-icon  { font-size: 1.5rem; line-height: 1; }
+  .touch-phone-btn-label { font-size: 0.5rem; letter-spacing: 0.1em; opacity: 0.8; }
+
+  /* ── スマホパネル：デフォルト非表示、touch-open で表示 ── */
+  .phone-panel {
+    display: none;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 148px !important;      /* コントロールバーの上 */
+    transform: none !important;
+    transition: none !important;
+    z-index: 10 !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    background: rgba(3, 5, 14, 0.97);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 !important;
   }
 
-  /* Responsive phone screen height: fits roughly bottom 50% of screen */
-  .phone-screen {
-    height: min(360px, 44vh) !important;
+  .phone-panel.touch-open {
+    display: flex;
   }
 
-  /* Phone close button: small pill in phone shell */
+  /* 閉じるボタン（phone-shell の先頭、右寄せ） */
   .touch-phone-close {
     display: flex;
     align-self: flex-end;
     align-items: center;
-    justify-content: center;
-    margin-bottom: 6px;
-    margin-right: 2px;
-    width: 30px;
-    height: 20px;
+    gap: 4px;
+    margin: 10px 12px 4px;
+    padding: 6px 14px;
     border-radius: 999px;
-    border: 1px solid rgba(147, 184, 255, 0.2);
-    background: rgba(7, 12, 23, 0.75);
-    color: rgba(238, 244, 255, 0.6);
-    font-size: 0.65rem;
-    cursor: pointer;
-    pointer-events: auto;
-    letter-spacing: 0.04em;
-  }
-
-  /* 📱 toggle: always shown top-right */
-  .touch-phone-toggle {
-    display: flex;
-    position: absolute;
-    top: 12px;
-    right: 108px;
-    z-index: 9;
-    pointer-events: auto;
-    align-items: center;
-    justify-content: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
     border: 1px solid rgba(147, 184, 255, 0.22);
-    background: rgba(7, 12, 23, 0.78);
-    color: #eef4ff;
-    font-size: 1rem;
+    background: rgba(7, 12, 23, 0.85);
+    color: rgba(238, 244, 255, 0.82);
+    font-size: 0.78rem;
     cursor: pointer;
-    backdrop-filter: blur(6px);
-    transition: background 0.2s;
+    pointer-events: auto;
+    flex-shrink: 0;
   }
 
-  .touch-phone-toggle:active {
-    background: rgba(30, 50, 90, 0.88);
+  .touch-phone-close:active {
+    background: rgba(30, 50, 90, 0.9);
   }
 
-  /* Touch pad: sits above the phone panel */
-  .touch-pad {
-    display: flex;
-    position: absolute;
-    left: 0;
-    right: 0;
-    /* bottom = approx height of phone panel (phone screen ~360px + chrome ~50px) */
-    bottom: min(410px, 52vh);
-    height: 140px;
-    pointer-events: none;
-    z-index: 7;
-    align-items: flex-end;
-    justify-content: space-between;
-    padding: 0 20px 12px;
+  /* phone-shell サイズ調整 */
+  .phone-shell {
+    width: min(280px, 90vw) !important;
+    flex-shrink: 0;
   }
 
-  /* enter-shop button: above touch pad */
-  .enter-shop-button {
-    bottom: calc(min(410px, 52vh) + 150px);
+  /* phone-screen 高さ：コントロールバー分を引いた残り */
+  .phone-screen {
+    height: min(390px, calc(100vh - 218px)) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
 
-  /* target-guide: stays in upper half */
+  /* HUD 調整：コントロールバーと重ならないよう */
+  .enter-shop-button { bottom: 172px; }
+
   .target-guide {
-    top: 12px;
-    left: auto;
-    right: 12px;
-    bottom: auto;
-    width: min(210px, calc(100vw - 24px));
-    transform: none;
+    top: 12px !important;
+    left: auto !important;
+    right: 12px !important;
+    bottom: auto !important;
+    width: min(200px, calc(100vw - 24px)) !important;
+    transform: none !important;
   }
 
 }
 
 /* ============================================================
    LANDSCAPE (スマホ横向き)
-   スマホパネルを右に固定、高さをビューポートに収める。
+   スマホパネルは右に常時表示、左にコントロールバー。
    ============================================================ */
 @media (pointer: coarse) and (orientation: landscape) {
 
-  /* ── Phone panel: right side, height-capped to viewport ── */
+  /* ── スマホパネル：右サイドに常時表示、高さは vh に収める ── */
   .phone-panel {
     position: absolute !important;
-    top: 8px !important;
+    top: 6px !important;
     right: 12px !important;
-    bottom: 8px !important;
+    bottom: 6px !important;
     left: auto !important;
     transform: none !important;
     z-index: 8 !important;
@@ -2494,45 +2502,45 @@ body {
   }
 
   .phone-shell {
-    width: min(220px, 28vw) !important;
+    width: min(216px, 27vw) !important;
     flex-shrink: 0;
   }
 
-  /* Clamp screen height to fit landscape viewport */
+  /* phone-screen 高さを vh に合わせる */
   .phone-screen {
-    height: min(424px, calc(100vh - 76px)) !important;
+    height: min(424px, calc(100vh - 72px)) !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Touch pad: bottom-left, action buttons clear of phone panel */
+  /* ── コントロールバー：左・電話ボタンなし ─────────── */
   .touch-pad {
     display: flex;
     position: absolute;
     bottom: 0;
     left: 0;
-    right: calc(min(220px, 28vw) + 28px); /* don't overlap phone */
+    right: calc(min(216px, 27vw) + 26px); /* phone panel の左まで */
     height: 140px;
-    pointer-events: none;
     z-index: 7;
-    align-items: flex-end;
+    pointer-events: none;
+    align-items: center;
     justify-content: space-between;
-    padding: 0 20px 16px;
+    padding: 0 16px 14px;
   }
 
-  /* enter-shop button: center, above controls */
-  .enter-shop-button {
-    bottom: 150px;
-  }
+  /* 横向きでは phone パネルが常時表示なので、📱ボタンは不要 */
+  .touch-phone-btn { display: none; }
+
+  .enter-shop-button { bottom: 152px; }
 
 }
 
 /* ============================================================
-   SHARED TOUCH CONTROLS (both orientations)
+   SHARED TOUCH CONTROLS
    ============================================================ */
 @media (pointer: coarse) {
 
-  /* Joystick zone */
+  /* ── ジョイスティック ──────────────────────────────── */
   .touch-joystick-zone {
     display: flex;
     flex-direction: column;
@@ -2574,7 +2582,7 @@ body {
     color: rgba(88, 244, 255, 0.38);
   }
 
-  /* Action buttons */
+  /* ── アクションボタン ──────────────────────────────── */
   .touch-btns {
     display: flex;
     flex-direction: column;
@@ -2601,21 +2609,10 @@ body {
     transition: transform 0.08s ease, background 0.08s ease;
   }
 
-  .touch-btn:active {
-    transform: scale(0.91);
-  }
+  .touch-btn:active { transform: scale(0.91); }
 
-  .touch-btn-symbol {
-    font-size: 1rem;
-    font-weight: 800;
-    line-height: 1;
-  }
-
-  .touch-btn-name {
-    font-size: 0.5rem;
-    letter-spacing: 0.14em;
-    opacity: 0.7;
-  }
+  .touch-btn-symbol { font-size: 1rem; font-weight: 800; line-height: 1; }
+  .touch-btn-name   { font-size: 0.5rem; letter-spacing: 0.14em; opacity: 0.7; }
 
   .touch-btn-e {
     border-color: rgba(121, 255, 181, 0.48);
@@ -2623,7 +2620,6 @@ body {
     color: #79ffb5;
     box-shadow: 0 4px 16px rgba(121, 255, 181, 0.1);
   }
-
   .touch-btn-e:active { background: rgba(121, 255, 181, 0.26); }
 
   .touch-btn-fire {
@@ -2632,7 +2628,6 @@ body {
     color: #ff5aab;
     box-shadow: 0 4px 16px rgba(255, 90, 171, 0.1);
   }
-
   .touch-btn-fire:active { background: rgba(255, 90, 171, 0.26); }
 
 }
