@@ -9835,49 +9835,72 @@ if (closeWorldMapButton) {
     touchFireBtn.addEventListener("touchcancel", releaseFire, { passive: false });
   }
 
-  // Phone panel toggle (small screens)
-  function isSmallTouch() {
-    return window.matchMedia("(pointer: coarse) and (max-width: 640px)").matches;
+  // Phone panel toggle (portrait touch: slides up/down)
+  const isPortraitTouch = () =>
+    window.matchMedia("(pointer: coarse) and (orientation: portrait)").matches;
+
+  function hidePhonePanel() {
+    if (!phonePanelEl) return;
+    phonePanelEl.classList.add("touch-hidden");
+    if (touchPhoneToggleBtn) touchPhoneToggleBtn.textContent = "📱";
   }
 
-  function openPhonePanel() {
+  function showPhonePanel() {
     if (!phonePanelEl) return;
-    phonePanelEl.classList.add("touch-open");
-  }
-
-  function closePhonePanel() {
-    if (!phonePanelEl) return;
-    phonePanelEl.classList.remove("touch-open");
+    phonePanelEl.classList.remove("touch-hidden");
+    if (touchPhoneToggleBtn) touchPhoneToggleBtn.textContent = "▼";
   }
 
   if (touchPhoneToggleBtn) {
     touchPhoneToggleBtn.addEventListener("click", () => {
-      if (!isSmallTouch()) return;
-      const isOpen = phonePanelEl && phonePanelEl.classList.contains("touch-open");
-      isOpen ? closePhonePanel() : openPhonePanel();
+      if (!isPortraitTouch()) return;
+      const isHidden = phonePanelEl && phonePanelEl.classList.contains("touch-hidden");
+      isHidden ? showPhonePanel() : hidePhonePanel();
     });
   }
 
   if (touchPhoneCloseBtn) {
-    touchPhoneCloseBtn.addEventListener("click", closePhonePanel);
+    touchPhoneCloseBtn.addEventListener("click", hidePhonePanel);
   }
 
-  // When any phone screen button is tapped on small touch, close panel after navigation
-  // so the player can see the game again
+  // When a mission action button is tapped in portrait, hide panel so game is visible
   if (phonePanelEl) {
     phonePanelEl.addEventListener("click", (e) => {
-      if (!isSmallTouch()) return;
+      if (!isPortraitTouch()) return;
       const target = e.target;
-      // Close panel when tapping action buttons (start missions, etc.)
       if (
         target.closest("button") &&
         !target.closest(".app-topbar") &&
-        !target.closest(".phone-home-grid")
+        !target.closest(".phone-home-grid") &&
+        !target.closest(".touch-phone-close")
       ) {
-        setTimeout(closePhonePanel, 80);
+        setTimeout(hidePhonePanel, 80);
       }
     });
   }
+
+  // Sync toggle icon on orientation change
+  function syncToggleIcon() {
+    if (!touchPhoneToggleBtn) return;
+    if (isPortraitTouch()) {
+      const isHidden = phonePanelEl && phonePanelEl.classList.contains("touch-hidden");
+      touchPhoneToggleBtn.textContent = isHidden ? "📱" : "▼";
+    } else {
+      touchPhoneToggleBtn.textContent = "📱";
+    }
+  }
+
+  syncToggleIcon();
+
+  window.addEventListener("orientationchange", () => {
+    // When rotating to landscape, remove touch-hidden so phone is visible again
+    setTimeout(() => {
+      if (!isPortraitTouch() && phonePanelEl) {
+        phonePanelEl.classList.remove("touch-hidden");
+      }
+      syncToggleIcon();
+    }, 200); // wait for layout to settle
+  });
 
   // Prevent body scroll while joystick is active
   document.body.addEventListener("touchmove", (e) => {

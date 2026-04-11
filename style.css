@@ -2344,45 +2344,200 @@ body {
   background: rgba(30, 50, 90, 0.9);
 }
 
-/* Phone-panel close button (touch mode only, hidden on desktop) */
-.touch-phone-close {
-  display: none;
+/* Defaults: all touch elements hidden on non-touch */
+.touch-phone-close { display: none; }
+.touch-phone-toggle { display: none; }
+.touch-pad { display: none; }
+
+/* ============================================================
+   PORTRAIT (スマホ縦向き)
+   スマホパネルを画面下に固定。タッチパッドはその上に配置。
+   ============================================================ */
+@media (pointer: coarse) and (orientation: portrait) {
+
+  /* ── Phone panel: bottom sheet, visible by default ────── */
+  .phone-panel {
+    position: absolute !important;
+    top: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    transform: translateY(0) !important;
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    z-index: 8 !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 12px 20px !important;
+    background: rgba(4, 7, 16, 0.97);
+    border-top: 1px solid rgba(88, 244, 255, 0.14);
+  }
+
+  /* Slide down to hide */
+  .phone-panel.touch-hidden {
+    transform: translateY(100%) !important;
+  }
+
+  /* Shrink phone shell to fit portrait layout */
+  .phone-shell {
+    width: min(272px, 86vw) !important;
+    border-radius: 22px !important;
+  }
+
+  /* Responsive phone screen height: fits roughly bottom 50% of screen */
+  .phone-screen {
+    height: min(360px, 44vh) !important;
+  }
+
+  /* Phone close button: small pill in phone shell */
+  .touch-phone-close {
+    display: flex;
+    align-self: flex-end;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 6px;
+    margin-right: 2px;
+    width: 30px;
+    height: 20px;
+    border-radius: 999px;
+    border: 1px solid rgba(147, 184, 255, 0.2);
+    background: rgba(7, 12, 23, 0.75);
+    color: rgba(238, 244, 255, 0.6);
+    font-size: 0.65rem;
+    cursor: pointer;
+    pointer-events: auto;
+    letter-spacing: 0.04em;
+  }
+
+  /* 📱 toggle: always shown top-right */
+  .touch-phone-toggle {
+    display: flex;
+    position: absolute;
+    top: 12px;
+    right: 108px;
+    z-index: 9;
+    pointer-events: auto;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid rgba(147, 184, 255, 0.22);
+    background: rgba(7, 12, 23, 0.78);
+    color: #eef4ff;
+    font-size: 1rem;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: background 0.2s;
+  }
+
+  .touch-phone-toggle:active {
+    background: rgba(30, 50, 90, 0.88);
+  }
+
+  /* Touch pad: sits above the phone panel */
+  .touch-pad {
+    display: flex;
+    position: absolute;
+    left: 0;
+    right: 0;
+    /* bottom = approx height of phone panel (phone screen ~360px + chrome ~50px) */
+    bottom: min(410px, 52vh);
+    height: 140px;
+    pointer-events: none;
+    z-index: 7;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 12px;
+  }
+
+  /* enter-shop button: above touch pad */
+  .enter-shop-button {
+    bottom: calc(min(410px, 52vh) + 150px);
+  }
+
+  /* target-guide: stays in upper half */
+  .target-guide {
+    top: 12px;
+    left: auto;
+    right: 12px;
+    bottom: auto;
+    width: min(210px, calc(100vw - 24px));
+    transform: none;
+  }
+
 }
 
-/* Phone toggle button (hidden on non-touch) */
-.touch-phone-toggle {
-  display: none;
-}
+/* ============================================================
+   LANDSCAPE (スマホ横向き)
+   スマホパネルを右に固定、高さをビューポートに収める。
+   ============================================================ */
+@media (pointer: coarse) and (orientation: landscape) {
 
-/* Touch pad: hidden on non-touch */
-.touch-pad {
-  display: none;
-}
+  /* ── Phone panel: right side, height-capped to viewport ── */
+  .phone-panel {
+    position: absolute !important;
+    top: 8px !important;
+    right: 12px !important;
+    bottom: 8px !important;
+    left: auto !important;
+    transform: none !important;
+    z-index: 8 !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 !important;
+    background: transparent;
+  }
 
-/* ---- Touch-device rules ---------------------------------- */
-@media (pointer: coarse) {
+  .phone-shell {
+    width: min(220px, 28vw) !important;
+    flex-shrink: 0;
+  }
 
-  /* Show touch pad */
+  /* Clamp screen height to fit landscape viewport */
+  .phone-screen {
+    height: min(424px, calc(100vh - 76px)) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Touch pad: bottom-left, action buttons clear of phone panel */
   .touch-pad {
     display: flex;
     position: absolute;
     bottom: 0;
     left: 0;
-    right: 0;
-    height: 160px;
+    right: calc(min(220px, 28vw) + 28px); /* don't overlap phone */
+    height: 140px;
     pointer-events: none;
-    z-index: 3;
+    z-index: 7;
     align-items: flex-end;
     justify-content: space-between;
-    padding: 0 20px 20px;
+    padding: 0 20px 16px;
   }
+
+  /* enter-shop button: center, above controls */
+  .enter-shop-button {
+    bottom: 150px;
+  }
+
+}
+
+/* ============================================================
+   SHARED TOUCH CONTROLS (both orientations)
+   ============================================================ */
+@media (pointer: coarse) {
 
   /* Joystick zone */
   .touch-joystick-zone {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     pointer-events: auto;
     user-select: none;
     -webkit-user-select: none;
@@ -2390,8 +2545,8 @@ body {
 
   .touch-joystick-base {
     position: relative;
-    width: 112px;
-    height: 112px;
+    width: 108px;
+    height: 108px;
     border-radius: 50%;
     background: rgba(88, 244, 255, 0.07);
     border: 2px solid rgba(88, 244, 255, 0.2);
@@ -2399,24 +2554,24 @@ body {
     align-items: center;
     justify-content: center;
     touch-action: none;
-    box-shadow: 0 0 24px rgba(88, 244, 255, 0.06);
+    box-shadow: 0 0 20px rgba(88, 244, 255, 0.05);
   }
 
   .touch-joystick-thumb {
-    width: 46px;
-    height: 46px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: radial-gradient(circle at 38% 38%, rgba(88, 244, 255, 0.55), rgba(88, 244, 255, 0.18));
     border: 2px solid rgba(88, 244, 255, 0.45);
-    box-shadow: 0 4px 16px rgba(88, 244, 255, 0.18);
+    box-shadow: 0 4px 14px rgba(88, 244, 255, 0.16);
     pointer-events: none;
     will-change: transform;
   }
 
   .touch-move-label {
-    font-size: 0.56rem;
+    font-size: 0.54rem;
     letter-spacing: 0.2em;
-    color: rgba(88, 244, 255, 0.4);
+    color: rgba(88, 244, 255, 0.38);
   }
 
   /* Action buttons */
@@ -2429,8 +2584,8 @@ body {
   }
 
   .touch-btn {
-    width: 62px;
-    height: 62px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     border: 2px solid;
     display: flex;
@@ -2447,144 +2602,37 @@ body {
   }
 
   .touch-btn:active {
-    transform: scale(0.92);
+    transform: scale(0.91);
   }
 
   .touch-btn-symbol {
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 800;
     line-height: 1;
   }
 
   .touch-btn-name {
-    font-size: 0.52rem;
+    font-size: 0.5rem;
     letter-spacing: 0.14em;
-    opacity: 0.72;
+    opacity: 0.7;
   }
 
   .touch-btn-e {
     border-color: rgba(121, 255, 181, 0.48);
     background: rgba(121, 255, 181, 0.1);
     color: #79ffb5;
-    box-shadow: 0 4px 18px rgba(121, 255, 181, 0.12);
+    box-shadow: 0 4px 16px rgba(121, 255, 181, 0.1);
   }
 
-  .touch-btn-e:active {
-    background: rgba(121, 255, 181, 0.26);
-  }
+  .touch-btn-e:active { background: rgba(121, 255, 181, 0.26); }
 
   .touch-btn-fire {
     border-color: rgba(255, 90, 171, 0.48);
     background: rgba(255, 90, 171, 0.1);
     color: #ff5aab;
-    box-shadow: 0 4px 18px rgba(255, 90, 171, 0.12);
+    box-shadow: 0 4px 16px rgba(255, 90, 171, 0.1);
   }
 
-  .touch-btn-fire:active {
-    background: rgba(255, 90, 171, 0.26);
-  }
-
-}
-
-/* ---- Tablet touch (641px+): action buttons left of phone panel -- */
-@media (pointer: coarse) and (min-width: 641px) {
-  .touch-btns {
-    position: absolute;
-    right: 300px; /* left of the phone panel */
-    bottom: 20px;
-  }
-}
-
-/* ---- Small phones (≤640px): phone toggle + collapse panel - */
-@media (pointer: coarse) and (max-width: 640px) {
-
-  /* Show phone toggle */
-  .touch-phone-toggle {
-    display: flex;
-    position: absolute;
-    top: 12px;
-    right: 108px;
-    z-index: 5;
-    pointer-events: auto;
-    align-items: center;
-    justify-content: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    border: 1px solid rgba(147, 184, 255, 0.2);
-    background: rgba(7, 12, 23, 0.75);
-    color: #eef4ff;
-    font-size: 1.1rem;
-    cursor: pointer;
-    backdrop-filter: blur(6px);
-    transition: background 0.2s;
-  }
-
-  .touch-phone-toggle:active {
-    background: rgba(30, 50, 90, 0.88);
-  }
-
-  /* Hide phone panel by default; shown as overlay when toggled */
-  .phone-panel {
-    display: none;
-    position: absolute !important;
-    inset: 0 !important;
-    top: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    z-index: 12 !important;
-    transform: none !important;
-    background: rgba(2, 4, 10, 0.97);
-    padding: 56px 20px 24px;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    align-items: center;
-    flex-direction: column;
-    justify-content: flex-start;
-  }
-
-  .phone-panel.touch-open {
-    display: flex;
-  }
-
-  .phone-panel.touch-open .phone-shell {
-    width: min(300px, 100%);
-  }
-
-  /* Phone close button visible in touch overlay */
-  .touch-phone-close {
-    display: flex;
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    z-index: 13;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 1px solid rgba(147, 184, 255, 0.22);
-    background: rgba(7, 12, 23, 0.82);
-    color: #eef4ff;
-    font-size: 0.95rem;
-    cursor: pointer;
-    pointer-events: auto;
-  }
-
-  /* Shift enter-shop button up to make room for touch pad */
-  .enter-shop-button {
-    bottom: 200px;
-  }
-
-  /* Keep target-guide clear of touch pad */
-  .target-guide {
-    bottom: 180px;
-  }
-
-  /* Interior/house mode: still show touch pad; phone panel already hidden */
-  .game-overlay.interior-mode ~ .touch-pad {
-    display: flex;
-  }
+  .touch-btn-fire:active { background: rgba(255, 90, 171, 0.26); }
 
 }
