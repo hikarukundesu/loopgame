@@ -145,91 +145,6 @@ body {
   display: none;
 }
 
-.debug-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(3, 7, 14, 0.72);
-  backdrop-filter: blur(8px);
-}
-
-.debug-overlay.hidden {
-  display: none;
-}
-
-.debug-shell {
-  width: min(92vw, 560px);
-  padding: 22px;
-  border-radius: 26px;
-  border: 1px solid rgba(255, 216, 102, 0.18);
-  background:
-    radial-gradient(circle at top right, rgba(255, 216, 102, 0.12), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
-    rgba(7, 12, 21, 0.95);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
-}
-
-.debug-topbar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-
-.debug-label {
-  margin: 0 0 6px;
-  color: var(--accent-yellow);
-  font-size: 0.72rem;
-  letter-spacing: 0.28em;
-}
-
-.debug-topbar h2 {
-  margin: 0;
-  font-size: clamp(1.2rem, 2vw, 1.6rem);
-}
-
-.debug-hint {
-  padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: #d7e5ff;
-  font-size: 0.82rem;
-}
-
-.debug-copy {
-  margin: 0 0 18px;
-  color: rgba(238, 244, 255, 0.8);
-  line-height: 1.45;
-}
-
-.debug-time-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.debug-time-button {
-  appearance: none;
-  border: 0;
-  border-radius: 18px;
-  padding: 16px 18px;
-  background: linear-gradient(135deg, #ffd866, #ffb36a);
-  color: #201106;
-  font-size: 1rem;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 12px 28px rgba(255, 179, 106, 0.18);
-}
-
-.debug-time-button:hover {
-  filter: brightness(1.04);
-}
-
 .shop-overlay {
   position: absolute;
   inset: 0;
@@ -2367,19 +2282,9 @@ body {
     padding: 12px;
   }
 
-  .debug-overlay {
-    padding: 12px;
-  }
-
   .shop-shell {
     width: 100%;
     max-height: 100%;
-    padding: 16px;
-    border-radius: 24px;
-  }
-
-  .debug-shell {
-    width: 100%;
     padding: 16px;
     border-radius: 24px;
   }
@@ -2407,7 +2312,279 @@ body {
     width: 100%;
   }
 
-  .debug-time-grid {
-    grid-template-columns: 1fr;
+}
+
+/* ============================================================
+   TOUCH / MOBILE CONTROLS
+   ============================================================ */
+
+/* Canvas: disable native browser touch handling */
+#game-canvas {
+  touch-action: none;
+}
+
+/* World map close button */
+.world-map-close-button {
+  appearance: none;
+  border: 1px solid rgba(88, 244, 255, 0.28);
+  border-radius: 999px;
+  padding: 8px 18px;
+  background: rgba(7, 12, 23, 0.75);
+  color: var(--accent-cyan);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.world-map-close-button:active {
+  background: rgba(30, 50, 90, 0.9);
+}
+
+/* Phone-panel close button (touch mode only, hidden on desktop) */
+.touch-phone-close {
+  display: none;
+}
+
+/* Phone toggle button (hidden on non-touch) */
+.touch-phone-toggle {
+  display: none;
+}
+
+/* Touch pad: hidden on non-touch */
+.touch-pad {
+  display: none;
+}
+
+/* ---- Touch-device rules ---------------------------------- */
+@media (pointer: coarse) {
+
+  /* Show touch pad */
+  .touch-pad {
+    display: flex;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 160px;
+    pointer-events: none;
+    z-index: 3;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 20px;
   }
+
+  /* Joystick zone */
+  .touch-joystick-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    pointer-events: auto;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .touch-joystick-base {
+    position: relative;
+    width: 112px;
+    height: 112px;
+    border-radius: 50%;
+    background: rgba(88, 244, 255, 0.07);
+    border: 2px solid rgba(88, 244, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    box-shadow: 0 0 24px rgba(88, 244, 255, 0.06);
+  }
+
+  .touch-joystick-thumb {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 38%, rgba(88, 244, 255, 0.55), rgba(88, 244, 255, 0.18));
+    border: 2px solid rgba(88, 244, 255, 0.45);
+    box-shadow: 0 4px 16px rgba(88, 244, 255, 0.18);
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  .touch-move-label {
+    font-size: 0.56rem;
+    letter-spacing: 0.2em;
+    color: rgba(88, 244, 255, 0.4);
+  }
+
+  /* Action buttons */
+  .touch-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    pointer-events: auto;
+  }
+
+  .touch-btn {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    border: 2px solid;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    backdrop-filter: blur(6px);
+    transition: transform 0.08s ease, background 0.08s ease;
+  }
+
+  .touch-btn:active {
+    transform: scale(0.92);
+  }
+
+  .touch-btn-symbol {
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .touch-btn-name {
+    font-size: 0.52rem;
+    letter-spacing: 0.14em;
+    opacity: 0.72;
+  }
+
+  .touch-btn-e {
+    border-color: rgba(121, 255, 181, 0.48);
+    background: rgba(121, 255, 181, 0.1);
+    color: #79ffb5;
+    box-shadow: 0 4px 18px rgba(121, 255, 181, 0.12);
+  }
+
+  .touch-btn-e:active {
+    background: rgba(121, 255, 181, 0.26);
+  }
+
+  .touch-btn-fire {
+    border-color: rgba(255, 90, 171, 0.48);
+    background: rgba(255, 90, 171, 0.1);
+    color: #ff5aab;
+    box-shadow: 0 4px 18px rgba(255, 90, 171, 0.12);
+  }
+
+  .touch-btn-fire:active {
+    background: rgba(255, 90, 171, 0.26);
+  }
+
+}
+
+/* ---- Tablet touch (641px+): action buttons left of phone panel -- */
+@media (pointer: coarse) and (min-width: 641px) {
+  .touch-btns {
+    position: absolute;
+    right: 300px; /* left of the phone panel */
+    bottom: 20px;
+  }
+}
+
+/* ---- Small phones (≤640px): phone toggle + collapse panel - */
+@media (pointer: coarse) and (max-width: 640px) {
+
+  /* Show phone toggle */
+  .touch-phone-toggle {
+    display: flex;
+    position: absolute;
+    top: 12px;
+    right: 108px;
+    z-index: 5;
+    pointer-events: auto;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid rgba(147, 184, 255, 0.2);
+    background: rgba(7, 12, 23, 0.75);
+    color: #eef4ff;
+    font-size: 1.1rem;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: background 0.2s;
+  }
+
+  .touch-phone-toggle:active {
+    background: rgba(30, 50, 90, 0.88);
+  }
+
+  /* Hide phone panel by default; shown as overlay when toggled */
+  .phone-panel {
+    display: none;
+    position: absolute !important;
+    inset: 0 !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    z-index: 12 !important;
+    transform: none !important;
+    background: rgba(2, 4, 10, 0.97);
+    padding: 56px 20px 24px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    align-items: center;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  .phone-panel.touch-open {
+    display: flex;
+  }
+
+  .phone-panel.touch-open .phone-shell {
+    width: min(300px, 100%);
+  }
+
+  /* Phone close button visible in touch overlay */
+  .touch-phone-close {
+    display: flex;
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 13;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(147, 184, 255, 0.22);
+    background: rgba(7, 12, 23, 0.82);
+    color: #eef4ff;
+    font-size: 0.95rem;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  /* Shift enter-shop button up to make room for touch pad */
+  .enter-shop-button {
+    bottom: 200px;
+  }
+
+  /* Keep target-guide clear of touch pad */
+  .target-guide {
+    bottom: 180px;
+  }
+
+  /* Interior/house mode: still show touch pad; phone panel already hidden */
+  .game-overlay.interior-mode ~ .touch-pad {
+    display: flex;
+  }
+
 }

@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>NIGHT DELIVERY PROTOTYPE</title>
     <link rel="stylesheet" href="style.css" />
   </head>
@@ -26,7 +26,7 @@
                   <p class="world-map-label">CITY NAVIGATION</p>
                   <h2>East Loop Wide Map</h2>
                 </div>
-                <span class="world-map-hint">Shift+M で閉じる</span>
+                <button id="close-world-map-button" class="world-map-close-button" type="button">閉じる</button>
               </div>
               <canvas
                 id="world-map-canvas"
@@ -34,24 +34,6 @@
                 height="800"
                 aria-label="都市全体マップ"
               ></canvas>
-            </div>
-          </section>
-          <section id="debug-panel-overlay" class="debug-overlay hidden" aria-hidden="true">
-            <div class="debug-shell">
-              <div class="debug-topbar">
-                <div>
-                  <p class="debug-label">DEBUG PANEL</p>
-                  <h2>Time Controls</h2>
-                </div>
-                <span class="debug-hint">M で閉じる</span>
-              </div>
-              <p class="debug-copy">朝・昼・夕方・夜を即座に切り替えられます。`Shift + M` は従来どおり全体マップです。</p>
-              <div class="debug-time-grid">
-                <button class="debug-time-button" type="button" data-time-of-day="morning">朝</button>
-                <button class="debug-time-button" type="button" data-time-of-day="day">昼</button>
-                <button class="debug-time-button" type="button" data-time-of-day="evening">夕方</button>
-                <button class="debug-time-button" type="button" data-time-of-day="night">夜</button>
-              </div>
             </div>
           </section>
           <section id="bike-shop-overlay" class="shop-overlay hidden" aria-hidden="true">
@@ -134,6 +116,7 @@
           <div class="game-overlay">
             <button id="sound-toggle-button" class="sound-toggle-button" type="button" title="サウンドON (クリックでミュート)">🔊</button>
             <button id="account-button" class="account-button" type="button" title="アカウント / クラウド保存">同期</button>
+            <button id="touch-phone-toggle" class="touch-phone-toggle" type="button" aria-label="スマホ画面を開く">📱</button>
             <section class="corner-hud">
               <p class="corner-label">NEON STREET SHIFT</p>
               <div class="money-stack">
@@ -173,6 +156,7 @@
 
             <aside class="phone-panel" aria-label="ミッションスマホ">
                 <div class="phone-shell">
+                <button id="touch-phone-close" class="touch-phone-close" type="button" aria-label="閉じる">✕</button>
                 <div class="phone-notch"></div>
                 <div class="phone-screen">
                   <div class="phone-statusbar">
@@ -533,6 +517,26 @@
               </div>
             </aside>
           </div>
+          <!-- Mobile touch controls -->
+          <div id="touch-pad" class="touch-pad" aria-hidden="true">
+            <div id="touch-joystick-zone" class="touch-joystick-zone">
+              <div id="touch-joystick-base" class="touch-joystick-base">
+                <div id="touch-joystick-thumb" class="touch-joystick-thumb"></div>
+              </div>
+              <span class="touch-move-label">MOVE</span>
+            </div>
+            <div class="touch-btns">
+              <button id="touch-interact-btn" class="touch-btn touch-btn-e" type="button">
+                <span class="touch-btn-symbol">E</span>
+                <span class="touch-btn-name">ACT</span>
+              </button>
+              <button id="touch-fire-btn" class="touch-btn touch-btn-fire" type="button">
+                <span class="touch-btn-symbol">⬤</span>
+                <span class="touch-btn-name">FIRE</span>
+              </button>
+            </div>
+          </div>
+
           <section id="account-overlay" class="account-overlay hidden" aria-hidden="true">
             <div class="account-shell">
               <div class="account-topbar">

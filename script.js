@@ -93,7 +93,6 @@ const toast = document.getElementById("toast");
 const missionCompleteBanner = document.getElementById("mission-complete-banner");
 const gameOverlay = document.querySelector(".game-overlay");
 const worldMapOverlay = document.getElementById("world-map-overlay");
-const debugPanelOverlay = document.getElementById("debug-panel-overlay");
 const accountButton = document.getElementById("account-button");
 const accountOverlay = document.getElementById("account-overlay");
 const closeAccountButton = document.getElementById("close-account-button");
@@ -103,7 +102,6 @@ const accountPasswordInput = document.getElementById("account-password-input");
 const accountLoginButton = document.getElementById("account-login-button");
 const accountRegisterButton = document.getElementById("account-register-button");
 const accountLogoutButton = document.getElementById("account-logout-button");
-const debugTimeButtons = document.querySelectorAll(".debug-time-button");
 const worldMapCanvas = document.getElementById("world-map-canvas");
 const worldMapCtx = worldMapCanvas.getContext("2d");
 
@@ -360,6 +358,8 @@ function resetTransientInputState() {
     keys[key] = false;
   });
   inputState.fireHeld = false;
+  touchInput.horizontal = 0;
+  touchInput.vertical = 0;
 }
 
 function saveGame() {
@@ -532,7 +532,6 @@ function setAccountOverlayOpen(open) {
   }
   gameState.isAccountOverlayOpen = open;
   if (open) {
-    toggleDebugPanel(false);
     toggleWorldMap(false);
     resetTransientInputState();
   }
@@ -1031,6 +1030,10 @@ const keys = {};
 const inputState = {
   fireHeld: false,
 };
+const touchInput = {
+  horizontal: 0,
+  vertical: 0,
+};
 
 const gameState = {
   money: 0,
@@ -1040,7 +1043,6 @@ const gameState = {
   missionCompleteTimeoutId: null,
   moneyIndicatorTimeoutId: null,
   isWorldMapOpen: false,
-  isDebugPanelOpen: false,
   isShopOpen: false,
   selectedJobType: "posting",
   currentPhoneScreen: "home",
@@ -1185,7 +1187,6 @@ const WORLD_COMBAT_CONFIG = {
   attackRange: 260,
   disengageRange: 360,
 };
-const DEBUG_MONEY_STEP = 10000;
 const ECONOMY = {
   currencySymbol: "¥",
   startingMoney: 3000,
@@ -2400,20 +2401,6 @@ function formatGameTime(totalMinutes) {
 
 function updateTimeSystem(deltaTime) {
   gameState.timeElapsedSeconds += deltaTime;
-}
-
-function setGameTimeToSegment(segmentKey) {
-  let elapsed = 0;
-  for (const segment of TIME_OF_DAY_CONFIG.segments) {
-    if (segment.key === segmentKey) {
-      gameState.timeElapsedSeconds = elapsed + segment.durationSeconds * 0.5;
-      updateHUD();
-      render();
-      showToast(`デバッグ: 時間帯を ${segment.label} に変更`);
-      return;
-    }
-    elapsed += segment.durationSeconds;
-  }
 }
 
 function getJobTypeMeta(jobType) {
@@ -5812,9 +5799,11 @@ function rectIntersectsViewport(x, y, width, height) {
   );
 }
 
+const TOUCH_DEADZONE = 0.12;
+
 function updateMovementInput() {
-  let horizontal = 0;
-  let vertical = 0;
+  let horizontal = Math.abs(touchInput.horizontal) > TOUCH_DEADZONE ? touchInput.horizontal : 0;
+  let vertical = Math.abs(touchInput.vertical) > TOUCH_DEADZONE ? touchInput.vertical : 0;
 
   if (keys.ArrowLeft || keys.KeyA) {
     horizontal -= 1;
@@ -7741,25 +7730,6 @@ function drawTimeOfDayOverlay() {
   ctx.fillRect(camera.x, camera.y, VIEWPORT.width, VIEWPORT.height);
 }
 
-function toggleDebugPanel(forceOpen) {
-  const shouldOpen =
-    typeof forceOpen === "boolean" ? forceOpen : !gameState.isDebugPanelOpen;
-
-  if (shouldOpen && gameState.isShopOpen) {
-    closeActiveShopScreen();
-  }
-  if (shouldOpen && gameState.isWorldMapOpen) {
-    toggleWorldMap(false);
-  }
-
-  gameState.isDebugPanelOpen = shouldOpen;
-  if (debugPanelOverlay) {
-    debugPanelOverlay.classList.toggle("hidden", !shouldOpen);
-    debugPanelOverlay.setAttribute("aria-hidden", String(!shouldOpen));
-  }
-  updateEnterShopButton();
-}
-
 function toggleWorldMap(forceOpen) {
   const shouldOpen =
     typeof forceOpen === "boolean" ? forceOpen : !gameState.isWorldMapOpen;
@@ -9531,15 +9501,6 @@ if (phoneScrollIndicator) {
     });
   });
 }
-debugTimeButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const segmentKey = button.dataset.timeOfDay;
-    if (!segmentKey) {
-      return;
-    }
-    setGameTimeToSegment(segmentKey);
-  });
-});
 if (startSpecialButton) {
   startSpecialButton.addEventListener("click", () => startMission("special"));
 }
@@ -9671,37 +9632,6 @@ window.addEventListener("keydown", (event) => {
     exitOwnedHouse();
     return;
   }
-  if (event.code === "Escape" && gameState.isDebugPanelOpen) {
-    event.preventDefault();
-    toggleDebugPanel(false);
-    return;
-  }
-  if (event.code === "KeyM" && !event.repeat) {
-    event.preventDefault();
-    if (isInteriorMode() || isHouseMode()) {
-      showToast("屋内ではデバッグパネルとマップを開けません");
-      return;
-    }
-    if (event.shiftKey) {
-      toggleWorldMap();
-      return;
-    }
-    toggleDebugPanel();
-    return;
-  }
-  if (event.code === "KeyG" && !event.repeat) {
-    event.preventDefault();
-    const delta = event.shiftKey ? -DEBUG_MONEY_STEP : DEBUG_MONEY_STEP;
-    if (delta > 0) {
-      addMoney(delta, "デバッグ加算", { source: "premium" });
-      showToast(`デバッグ: 所持金 +${formatCurrency(DEBUG_MONEY_STEP)}`);
-    } else if (spendMoney(Math.abs(delta), "デバッグ減算", { source: "purchase" })) {
-      showToast(`デバッグ: 所持金 -${formatCurrency(DEBUG_MONEY_STEP)}`);
-    } else {
-      showToast("デバッグ減算に必要な所持金が足りません");
-    }
-    return;
-  }
   if (event.code === "KeyE" && !event.repeat) {
     event.preventDefault();
     if (isHouseMode()) {
@@ -9786,6 +9716,174 @@ if (soundToggleBtn) {
     soundToggleBtn.title = muted ? "ミュート中 (クリックで解除)" : "サウンドON (クリックでミュート)";
   });
 }
+
+// World map close button (mobile)
+const closeWorldMapButton = document.getElementById("close-world-map-button");
+if (closeWorldMapButton) {
+  closeWorldMapButton.addEventListener("click", () => toggleWorldMap(false));
+}
+
+// ====== TOUCH CONTROLS ======
+(function initTouchControls() {
+  const joystickBase = document.getElementById("touch-joystick-base");
+  const joystickThumb = document.getElementById("touch-joystick-thumb");
+  const joystickZone = document.getElementById("touch-joystick-zone");
+  const touchInteractBtn = document.getElementById("touch-interact-btn");
+  const touchFireBtn = document.getElementById("touch-fire-btn");
+  const touchPhoneToggleBtn = document.getElementById("touch-phone-toggle");
+  const touchPhoneCloseBtn = document.getElementById("touch-phone-close");
+  const phonePanelEl = document.querySelector(".phone-panel");
+
+  if (!joystickBase) return;
+
+  const JOYSTICK_RADIUS = 33; // max thumb travel in px
+
+  const joystick = {
+    active: false,
+    identifier: null,
+    baseX: 0,
+    baseY: 0,
+  };
+
+  function getJoystickCenter() {
+    const rect = joystickBase.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }
+
+  function applyJoystick(clientX, clientY) {
+    const center = getJoystickCenter();
+    const dx = clientX - center.x;
+    const dy = clientY - center.y;
+    const dist = Math.hypot(dx, dy);
+    const clamped = Math.min(dist, JOYSTICK_RADIUS);
+    const angle = Math.atan2(dy, dx);
+    const tx = Math.cos(angle) * clamped;
+    const ty = Math.sin(angle) * clamped;
+
+    joystickThumb.style.transform = `translate(${tx}px, ${ty}px)`;
+    touchInput.horizontal = tx / JOYSTICK_RADIUS;
+    touchInput.vertical = ty / JOYSTICK_RADIUS;
+  }
+
+  function resetJoystickVisual() {
+    joystickThumb.style.transform = "translate(0px, 0px)";
+    touchInput.horizontal = 0;
+    touchInput.vertical = 0;
+    joystick.active = false;
+    joystick.identifier = null;
+  }
+
+  joystickZone.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    if (joystick.active) return;
+    const touch = e.changedTouches[0];
+    joystick.active = true;
+    joystick.identifier = touch.identifier;
+    applyJoystick(touch.clientX, touch.clientY);
+  }, { passive: false });
+
+  window.addEventListener("touchmove", (e) => {
+    if (!joystick.active) return;
+    for (const touch of e.changedTouches) {
+      if (touch.identifier === joystick.identifier) {
+        e.preventDefault();
+        applyJoystick(touch.clientX, touch.clientY);
+        return;
+      }
+    }
+  }, { passive: false });
+
+  function onJoystickRelease(e) {
+    for (const touch of e.changedTouches) {
+      if (touch.identifier === joystick.identifier) {
+        resetJoystickVisual();
+        return;
+      }
+    }
+  }
+
+  window.addEventListener("touchend", onJoystickRelease);
+  window.addEventListener("touchcancel", onJoystickRelease);
+
+  // Interact button (E key)
+  if (touchInteractBtn) {
+    touchInteractBtn.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyE", bubbles: true }));
+    }, { passive: false });
+
+    touchInteractBtn.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      window.dispatchEvent(new KeyboardEvent("keyup", { code: "KeyE", bubbles: true }));
+    }, { passive: false });
+  }
+
+  // Fire button (Space)
+  if (touchFireBtn) {
+    touchFireBtn.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      inputState.fireHeld = true;
+      window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space", bubbles: true }));
+    }, { passive: false });
+
+    const releaseFire = (e) => {
+      e.preventDefault();
+      inputState.fireHeld = false;
+      window.dispatchEvent(new KeyboardEvent("keyup", { code: "Space", bubbles: true }));
+    };
+    touchFireBtn.addEventListener("touchend", releaseFire, { passive: false });
+    touchFireBtn.addEventListener("touchcancel", releaseFire, { passive: false });
+  }
+
+  // Phone panel toggle (small screens)
+  function isSmallTouch() {
+    return window.matchMedia("(pointer: coarse) and (max-width: 640px)").matches;
+  }
+
+  function openPhonePanel() {
+    if (!phonePanelEl) return;
+    phonePanelEl.classList.add("touch-open");
+  }
+
+  function closePhonePanel() {
+    if (!phonePanelEl) return;
+    phonePanelEl.classList.remove("touch-open");
+  }
+
+  if (touchPhoneToggleBtn) {
+    touchPhoneToggleBtn.addEventListener("click", () => {
+      if (!isSmallTouch()) return;
+      const isOpen = phonePanelEl && phonePanelEl.classList.contains("touch-open");
+      isOpen ? closePhonePanel() : openPhonePanel();
+    });
+  }
+
+  if (touchPhoneCloseBtn) {
+    touchPhoneCloseBtn.addEventListener("click", closePhonePanel);
+  }
+
+  // When any phone screen button is tapped on small touch, close panel after navigation
+  // so the player can see the game again
+  if (phonePanelEl) {
+    phonePanelEl.addEventListener("click", (e) => {
+      if (!isSmallTouch()) return;
+      const target = e.target;
+      // Close panel when tapping action buttons (start missions, etc.)
+      if (
+        target.closest("button") &&
+        !target.closest(".app-topbar") &&
+        !target.closest(".phone-home-grid")
+      ) {
+        setTimeout(closePhonePanel, 80);
+      }
+    });
+  }
+
+  // Prevent body scroll while joystick is active
+  document.body.addEventListener("touchmove", (e) => {
+    if (joystick.active) e.preventDefault();
+  }, { passive: false });
+}());
 
 render();
 if (_didLoadSave) {
