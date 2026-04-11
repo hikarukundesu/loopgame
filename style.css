@@ -210,6 +210,12 @@ body {
   margin-bottom: 12px;
 }
 
+.account-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .account-label {
   margin: 0 0 6px;
   color: var(--accent-cyan);
@@ -223,6 +229,7 @@ body {
 }
 
 .account-close-button,
+.account-lang-button,
 .account-action-button {
   appearance: none;
   border: 0;
@@ -230,10 +237,23 @@ body {
   cursor: pointer;
 }
 
-.account-close-button {
+.account-close-button,
+.account-lang-button {
   padding: 10px 14px;
   background: rgba(255, 255, 255, 0.1);
   color: #f7fbff;
+}
+
+.account-lang-button {
+  border: 1px solid rgba(88, 244, 255, 0.26);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.account-lang-button.active {
+  background: linear-gradient(180deg, #9fd8ff, #79ffb5);
+  color: #07131d;
+  box-shadow: 0 10px 24px rgba(121, 255, 181, 0.18);
 }
 
 .account-status-text {
@@ -995,6 +1015,33 @@ body {
 .money-stack {
   display: grid;
   gap: 4px;
+}
+
+.hud-lang-button {
+  appearance: none;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 7px 12px;
+  border: 1px solid rgba(88, 244, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(7, 12, 23, 0.68);
+  color: #eef8ff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease, border-color 0.2s ease;
+}
+
+.hud-lang-button:hover {
+  background: rgba(24, 39, 71, 0.88);
+  transform: translateY(-1px);
+}
+
+.hud-lang-button.active {
+  border-color: rgba(121, 255, 181, 0.36);
+  background: linear-gradient(180deg, #9fd8ff, #79ffb5);
+  color: #07131d;
 }
 
 .money-goal-label {
@@ -2385,6 +2432,13 @@ body {
     flex-direction: row !important;
     align-items: baseline !important;
     gap: 2px !important;
+  }
+
+  .hud-lang-button {
+    margin-top: 0 !important;
+    margin-left: 6px;
+    padding: 4px 8px;
+    font-size: 0.56rem;
   }
 
   #money {

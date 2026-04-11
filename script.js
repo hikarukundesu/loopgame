@@ -4,6 +4,7 @@ const ctx = canvas.getContext("2d");
 const moneyLabel = document.getElementById("money");
 const moneyChangeIndicator = document.getElementById("money-change-indicator");
 const moneyGoalLabel = document.getElementById("money-goal-label");
+const hudLangButton = document.getElementById("hud-lang-button");
 const timeOfDayLabel = document.getElementById("time-of-day-label");
 const timeDisplayLabel = document.getElementById("time-display-label");
 const missionStatusLabel = document.getElementById("mission-status");
@@ -102,6 +103,7 @@ const accountPasswordInput = document.getElementById("account-password-input");
 const accountLoginButton = document.getElementById("account-login-button");
 const accountRegisterButton = document.getElementById("account-register-button");
 const accountLogoutButton = document.getElementById("account-logout-button");
+const accountLangButton = document.getElementById("account-lang-button");
 const worldMapCanvas = document.getElementById("world-map-canvas");
 const worldMapCtx = worldMapCanvas.getContext("2d");
 
@@ -350,6 +352,7 @@ function drawParticles() {
 // ====== SAVE / LOAD ======
 const SAVE_KEY = "nightdelivery_v1";
 const PENDING_CLOUD_BOOTSTRAP_KEY = "nightdelivery_pending_cloud_bootstrap_v1";
+const LANGUAGE_KEY = "nightdelivery_language_v1";
 const API_BASE = "/api";
 let supabaseClient = null;
 
@@ -429,6 +432,619 @@ function getBootstrapSnapshot() {
     return localSnapshot;
   }
   return getSaveSnapshot();
+}
+
+const I18N = {
+  ja: {
+    canvasAria: "見下ろし型の配達ゲーム",
+    worldMapAria: "都市全体マップ",
+    bikeShopListAria: "自転車屋の商品一覧",
+    carShopListAria: "車屋の商品一覧",
+    hackTargetAria: "同期ターゲット",
+    hackSlotAria: "ハッキングスロット",
+    phonePanelAria: "ミッションスマホ",
+    cityMapAria: "都市マップ",
+    ownedVehiclesAria: "所有車両一覧",
+    housingListAria: "購入できる家一覧",
+    premiumPackListAria: "購入できるマネーパック一覧",
+    scrollDownAria: "下へスクロール",
+    touchPhoneAria: "スマホを取り出す",
+    commonClose: "閉じる",
+    commonStart: "開始",
+    backHomeAria: "ホーム画面に戻る",
+    buyStreetLabel: "BUYストリート",
+    bikeShopHeroTitle: "中古自転車やロードバイクを選んで購入",
+    bikeShopHeroBody: "序盤の時短用。車よりは届きやすいが、地味仕事の稼ぎでは少し重めです。",
+    carShopHeroTitle: "中古車からスーパーカーまで、街を駆ける4台を比較して購入",
+    carShopHeroBody: "中古車は届きそう、普通車は中期目標、SUV以上は長期目標です。価格差の重さを見ながら選べます。",
+    hackTitle: "護送車のロックを解除",
+    hackHeroTitle: "近距離で通信ノードに侵入し、人質用の拘束ロックを解放する",
+    hackHeroBody: "開始すると3リールのハッキングスロットが回転し、揃えると開放成功です。",
+    hackStartButton: "ハッキング開始",
+    hackTargetBody: "3つのリールをこの記号で止めると解除成功",
+    hackStopButton: "リールを停止",
+    soundOnTitle: "サウンドON (クリックでミュート)",
+    soundOffTitle: "サウンドOFF (クリックで再開)",
+    accountButtonTitle: "アカウント / クラウド保存",
+    hudLangEnglish: "ENGLISH MODE",
+    hudLangJapanese: "JAPANESE MODE",
+    targetGuideLabel: "目的地ナビ",
+    targetGuideHint: "矢印の方向へ進む",
+    phoneHomeDate: "火曜日 4月8日 / 11:56",
+    appMap: "マップ",
+    appFoodDelivery: "Foodデリバリー",
+    appVehicle: "車両",
+    appPosting: "ポスティング",
+    appTaxi: "タクシー",
+    appSpecialOps: "特別業務",
+    appHousing: "不動産",
+    appPremium: "課金",
+    taxiTitle: "タクシー業務",
+    housingTitle: "不動産 / 配信拠点",
+    premiumTitle: "マネーチャージ",
+    featuredSpotLabel: "注目スポット",
+    featuredSpotBody: "BUYストリートに買い物スポット集中",
+    foodHeroTitle: "店舗で受け取り、住宅へ配達",
+    foodHeroBody: "まとまった報酬を狙える定番バイト",
+    rewardLabel: "報酬",
+    destinationLabel: "目的地",
+    progressLabel: "進捗",
+    startDeliveryButton: "配達を開始する",
+    postingHeroTitle: "店舗や家にチラシを投函",
+    postingHeroBody: "一軒ずつ回って少額報酬を積み上げる",
+    startPostingButton: "ポスティングを開始する",
+    taxiHeroTitle: "営業所で車両を借り、街の客を乗せて目的地まで送迎",
+    taxiHeroBody: "先にレンタル代が必要ですが、安定して回せる中間収入の生活仕事です。",
+    rentalFeeLabel: "レンタル代",
+    currentStatusLabel: "現在の状態",
+    fareTotalLabel: "運賃 / 累計",
+    startTaxiButton: "タクシー業務を開始する",
+    endTaxiButton: "タクシー業務を終了する",
+    vehicleHeroTitle: "所有している車両から移動手段を選択",
+    vehicleHeroBody: "自転車や車を選ぶとすぐ乗車し、Eキーで降りられます。",
+    selectedVehicleLabel: "選択中の車両",
+    searchJobsLabel: "ジョブを検索",
+    midTierJobsLabel: "中間ジョブ",
+    highRiskJobsLabel: "高リスク任務",
+    smallJobTitle: "小ミッション: 書類を回収して届ける",
+    smallJobSummary: "短距離で終わる低リスクの小口案件です。報酬は ¥200〜¥350 で、配達より重く危険ジョブより安全です。",
+    specialJobTitle: "アタッシュケースを奪え",
+    specialJobSummary: "報酬は ¥900〜¥1300。開始すると近くに任務用車両が現れ、指定マンションへの潜入任務が始まります。",
+    rescueJobTitle: "護送車から人質を開放する",
+    rescueJobSummary: "報酬は ¥700〜¥1500。発光する護送車を追跡し、近づいてハッキングで拘束ロックを解除します。",
+    cashoutJobTitle: "ポイント現金を回収して銀行へ運べ",
+    cashoutJobSummary: "報酬は ¥1200〜¥1800。回収後は武装した妨害班に狙われます。1発でも被弾すると失敗ですが、こちらも銃で応戦できます。",
+    housingHeroTitle: "家を買ってPC配信の収益を伸ばす",
+    housingHeroBody: "購入後は現地の家に入ってPCから配信できます。レベルが上がるほど収益も上昇します。",
+    currentBaseLabel: "現在の拠点",
+    streamIncomeLabel: "想定配信収益",
+    stateLabel: "状態",
+    premiumHeroTitle: "Stripeでゲーム内マネーをチャージ",
+    premiumHeroBody: "ログイン中のアカウントに入金されます。決済確定後に所持金へ反映されます。",
+    paymentMethodLabel: "決済方式",
+    paymentMethodBody: "Web版向け Stripe Checkout",
+    beforePurchaseLabel: "購入前の確認",
+    phoneLabel: "スマホ",
+    accountTitle: "ログイン / 新規登録",
+    accountGuideNewTitle: "はじめて使う人",
+    accountGuideNewBody: "このゲームは登録してから遊ぶ方式です。メールアドレスとパスワードを入れて、`新規登録` を押します。確認メールが届いたら、メール内リンクを開いてから `ログイン` してください。",
+    accountGuideExistingTitle: "すでに登録済みの人",
+    accountGuideExistingBody: "同じメールアドレスとパスワードで `ログイン` を押すと、クラウド保存をこの端末に読み込みます。",
+    emailLabel: "メールアドレス",
+    passwordLabel: "パスワード",
+    passwordPlaceholder: "8文字以上",
+    accountRegisterButton: "初めてなので新規登録",
+    accountLoginButton: "登録済みなのでログイン",
+    accountLogoutButton: "ログアウト",
+    accountNote: "確認メールが届かないときは、迷惑メールフォルダも確認してください。Supabase のメール設定が未完了だと配信されないことがあります。",
+    accountSync: "同期",
+    accountCloud: "クラウド",
+    accountNeedsLogin: "このゲームは登録またはログインが必要です。メールアドレスで続けてください。",
+    accountInitializing: "Supabase を初期化しています。",
+    accountLoggedIn: "{email} でログイン中。{sync}",
+    accountCloudConnected: "クラウド保存に接続済みです。",
+    accountAutoSave: "この端末の進行は自動で保存されます。",
+    premiumChoosePack: "ログインすると購入パックを選べます",
+    premiumStripeMissing: "Stripeの設定がまだ入っていません",
+    premiumLoginRequired: "購入するには右上の同期からログインしてください",
+    premiumPackMissing: "販売パックはまだ登録されていません",
+    premiumCheckoutPreparing: "Stripe Checkout を準備しています...",
+    premiumConfirming: "決済結果を確認しています...",
+    premiumDestination: "購入先: {target}",
+    loggedInAccount: "ログイン中のアカウント",
+    premiumPackFallbackDesc: "購入した分だけ、そのまま所持金に反映されます。",
+    premiumPackAmount: "ゲーム内通貨 {amount} ドル",
+    premiumBuyPreparing: "準備中...",
+    premiumBuyPrice: "{price}円で買う",
+    uiNotOwned: "未所有",
+    uiNone: "なし",
+    uiOnFoot: "徒歩で移動中",
+    uiRideHint: "{name} に乗車中 ・ Eで降りる",
+    uiVehicleSelected: "{name} を選択中",
+    uiVehicleActive: "{name} を使用中",
+    uiNoOwnedVehicles: "まだ車両を所有していません",
+    uiBikeRideDesc: "選択すると自転車に乗って移動できます。",
+    uiCarRideDesc: "選択すると車両に乗って移動できます。",
+    uiRiding: "乗車中",
+    uiRide: "乗る",
+    uiEnterBikeShop: "自転車屋に入る",
+    uiEnterCarShop: "車屋に入る",
+    uiInventory: "車 {car} / 自転車 {bike} / 装備 {gear}",
+    uiGoalNext: "次の目標: {label} まで {amount}",
+    uiGoalMax: "最上位到達: すべての車を購入済み",
+    uiSpecialInProgress: "作戦が進行中です",
+    uiReviewJobList: "ジョブ一覧を確認中",
+    uiMissionInProgress: "作戦進行中",
+    uiStartMission: "任務を開始してください",
+    uiStreamStartAtPc: "PCの前で E を押して配信を開始する",
+    uiStreamRunning: "配信進行中",
+    uiPcOrExit: "PCまたは出口へ",
+    uiStreamWatching: "配信中... 視聴者 {viewers}人",
+    uiStreamRevenue: "収益 {amount}",
+    uiOpenPhonePrompt: "右下のスマホで依頼を受けてください",
+    uiAcceptRequest: "依頼を受けてください",
+    uiDeliveryAppActive: "Foodデリバリー実行中",
+    uiPostingAppActive: "ポスティング実行中",
+    uiSpecialOpsActive: "特別業務を実行中",
+    uiOpenOtherApps: "ホームに戻ると他アプリを確認できます",
+    uiAppSwitchLocked: "別アプリへの切り替えは現在停止中",
+    uiLowRiskJob: "報酬 {reward} ・ 低リスクの中間案件",
+    uiMidTierJob: "報酬 {reward} ・ 中間ジョブ",
+    uiArmedInterference: "報酬 {reward} ・ 武装妨害あり",
+    uiAmbushAfterPickup: "報酬 {reward} ・ 回収後に襲撃発生",
+    uiOneHitFail: "被弾一発で失敗 / Space で応戦",
+    uiOneHitFailShoot: "被弾一発で失敗 / Space で射撃",
+    uiPostingProgress: "{current}/{total}件完了 ・ 次は{stop}",
+    uiJobCompleteMoney: "報酬 {reward} を獲得",
+    uiJobComplete: "仕事完了",
+    uiNextDelivery: "次の配達を開始できます",
+    uiNextPosting: "次のポスティングを開始できます",
+    uiNextSpecial: "次の特別業務を開始できます",
+    uiRescueChase: "護送車を追跡",
+    uiRescueApproach: "護送車の通信圏内へ接近",
+    uiRescueTrack: "護送車を追跡する",
+    uiRescueHackRunning: "スロット侵入を実行中",
+    uiRescueHackOpen: "近づくと侵入UIが開く",
+    uiRescueUnlock: "護送車を止めずにロックを解除する",
+    uiRescueRewardNeedRange: "報酬 {reward} ・ 通信圏への接近が必要",
+    uiHostageSafe: "人質を保護",
+    uiHostageSecured: "人質を確保済み",
+    uiTalkToHostage: "人質に話しかける",
+    uiPressEForReward: "Eで会話すると報酬を受領",
+    uiRescueRewardDone: "報酬 {reward} ・ 護送車ロック解除済み",
+    uiMissionVehicleWait: "任務車両への乗車待ち",
+    uiSecureFastVehicle: "報酬 {reward} ・ 高速車両を確保",
+    uiApartmentPrep: "マンション潜入の準備中",
+    uiInteriorShift: "指定地点に入ると屋内へ切り替え",
+    uiExitWithBriefcase: "アタッシュケースを持って脱出",
+    uiFightToExit: "Space で射撃しながら出口へ",
+    uiCarryCaseToDropoff: "ケースを持って受渡し地点へ",
+    uiMissionClearOnDelivery: "納品でミッション完了",
+    uiCaseSecured: "報酬 {reward} ・ ケース確保済み",
+    uiTaxiPickupPassenger: "{name} で乗客を拾う",
+    uiTaxiPickupTarget: "乗客へ向かう: {name}",
+    uiTaxiDeliverPassenger: "{name} まで送迎する",
+    uiTaxiDestinationTarget: "送迎先: {name}",
+    uiPickupItem: "{name} で商品を受け取る",
+    uiPickupTarget: "受取先へ向かう: {name}",
+    uiDeliveryTo: "{name} に届ける",
+    uiDeliveryTarget: "届け先へ向かう: {name}",
+    uiDeliveryReward: "配達報酬 {reward}",
+    uiSmallMissionRunning: "小ミッション実行中",
+    uiSmallMissionPickup: "{name} で依頼品を回収する",
+    uiSmallMissionPickupTarget: "回収先: {name}",
+    uiSmallMissionReceiveAt: "{name} で依頼品を受け取る",
+    uiReturnAfterPickup: "回収後に受け渡し先へ向かう",
+    uiRecoverAt: "{name} で回収",
+    uiDeliverRequestItem: "{name} に依頼品を届ける",
+    uiHandoffTarget: "受け渡し先: {name}",
+    uiSmallMissionDelivering: "報酬 {reward} ・ 受け渡し中",
+    uiDeliveryBigReward: "納品でまとまった報酬を獲得",
+    uiCashPickup: "{name} で現金を回収する",
+    uiCashPickupTarget: "現金回収地点: {name}",
+    uiSecureCashAt: "{name} で現金を確保する",
+    uiEscortToBank: "回収後に銀行まで護送",
+    uiRecoverCashAt: "{name} で現金を回収",
+    uiCarryCashToBank: "{name} まで現金を運ぶ",
+    uiBankEscortTarget: "銀行へ護送: {name}",
+    uiDeliverCashTo: "{name} に現金を届ける",
+    uiFightToBank: "武装妨害を排除しながら銀行へ",
+    uiEscortTo: "{name} に護送する",
+    uiFlyerDropAt: "{name} にチラシを投函する",
+    uiFlyerTarget: "{kind}へ向かう: {name}",
+    uiPostingPay: "1軒 +{perStop} / 合計 {reward}",
+    uiRewardEarned: "報酬 {reward} を獲得",
+    uiApproachVanHack: "発光する護送車へ近づきハッキングを仕掛ける",
+    uiApproachFreedHostage: "解放した人質に近づいて報酬を受け取る",
+    uiHeadToMissionVehicle: "近くに出現した任務用車両へ向かう",
+    uiBoardMissionVehicle: "任務用車両に乗り込む",
+    uiHeadToEntryGlow: "{name} の光る侵入地点へ向かう",
+    uiInfiltrationPoint: "潜入地点: {name}",
+    uiInfiltrateAt: "{name} に潜入する",
+    uiEscapeWithBriefcase: "アタッシュケースを持って出口へ脱出する",
+    uiHeadToExitInside: "屋内出口へ向かう",
+    uiDeliverBriefcaseTo: "{name} にアタッシュケースを届ける",
+    uiDropoffPoint: "受渡し地点: {name}",
+    uiFoodProgressDefault: "店舗で受取して家へ届けます",
+    uiPostingProgressDefault: "ホーム画面から仕事を選択",
+    uiHomeKind: "住宅",
+    uiShopKind: "店舗",
+    taxiRentalStart: "開始時に {fee} を支払ってレンタル",
+    taxiFareCurrent: "現在の運賃 {fare} / 累計 {total}",
+    taxiFareNext: "次の送迎 {min}〜{max} / 累計 {total}",
+    taxiAvailable: "スマホから開始可能",
+    taxiRentalAdvance: "スマホで開始すると {fee} が先に引かれます",
+    taxiRentedStatus: "レンタル完了",
+    taxiAssigningPassenger: "次の乗客候補を割り当て中",
+    taxiSearchingPassengerStatus: "乗客を探しています",
+    taxiSearchingPassengerProgress: "{name} の近くで乗客を乗せると {fare} 見込み",
+    taxiPassengerOnBoardStatus: "乗客が乗車しました",
+    taxiPassengerOnBoardProgress: "{destination} へ向かってください",
+    taxiDeliveringStatus: "送迎中",
+    taxiDeliveringProgress: "{destination} へ送迎中 / 累計利益 {profit}",
+    taxiFareCompleteStatus: "送迎完了",
+    taxiFareCompleteProgress: "累計 {count}件 / 純利益 {profit}",
+    taxiEndedStatus: "業務終了",
+    taxiEndedProgress: "最終利益 {profit}",
+    housingOwnedLabel: "Lv{level} {label}{building}",
+    housingBuildingSuffix: " / {name}",
+    housingViewerRange: "視聴者 {range} / 1配信 {income}",
+    housingNextCandidate: "次の候補 Lv1 ボロ屋 / 1配信 {income}",
+    housingBuyFromPhone: "スマホから拠点を購入できます",
+    housingStreamEnded: "配信終了 {label}",
+    housingCooldown: "次の配信まで {seconds} 秒",
+    housingGoHome: "所有中の家へ行き、PCから配信を開始できます",
+    housingViewersBase: "{base} / 視聴者 {min}〜{max}人",
+    housingIncomeMeta: "配信収益 {min}〜{max}",
+    housingPriceMeta: "価格 {price}",
+    housingOwnedButton: "所有中",
+    housingUpgradeOrderButton: "前の家から購入",
+    housingBuyButton: "購入する",
+    housingNotEnoughButton: "所持金不足",
+    jobPayLabel: "参加費 {fee} / 報酬 {min}〜{max}",
+    taxiPayLabel: "レンタル {fee} / 運賃 {min}〜{max}",
+  },
+  en: {
+    canvasAria: "Top-down delivery game",
+    worldMapAria: "Full city map",
+    bikeShopListAria: "Bike shop inventory",
+    carShopListAria: "Car dealer inventory",
+    hackTargetAria: "Sync target",
+    hackSlotAria: "Hacking slot machine",
+    phonePanelAria: "Mission phone",
+    cityMapAria: "City map",
+    ownedVehiclesAria: "Owned vehicles list",
+    housingListAria: "Available houses list",
+    premiumPackListAria: "Available money packs",
+    scrollDownAria: "Scroll down",
+    touchPhoneAria: "Open phone",
+    commonClose: "Close",
+    commonStart: "Start",
+    backHomeAria: "Back to home screen",
+    buyStreetLabel: "BUY Street",
+    bikeShopHeroTitle: "Pick a used bike or road bike and buy it",
+    bikeShopHeroBody: "A solid early shortcut. Easier to reach than cars, but still a bit heavy for low-paying starter jobs.",
+    carShopHeroTitle: "Compare four rides from used cars to supercars",
+    carShopHeroBody: "Used cars are within reach, standard cars are mid-game goals, and SUVs or above are long-term targets.",
+    hackTitle: "Unlock the armored van",
+    hackHeroTitle: "Break into the nearby relay node and release the hostage lock",
+    hackHeroBody: "Start the hack, stop all three reels on the same symbol, and the lock opens.",
+    hackStartButton: "Start Hack",
+    hackTargetBody: "Stop all three reels on this symbol to unlock",
+    hackStopButton: "Stop Reel",
+    soundOnTitle: "Sound on (click to mute)",
+    soundOffTitle: "Sound off (click to resume)",
+    accountButtonTitle: "Account / Cloud Save",
+    hudLangEnglish: "ENGLISH MODE",
+    hudLangJapanese: "JAPANESE MODE",
+    targetGuideLabel: "Target Guide",
+    targetGuideHint: "Move in the arrow's direction",
+    phoneHomeDate: "Tuesday Apr 8 / 11:56",
+    appMap: "Map",
+    appFoodDelivery: "Food Delivery",
+    appVehicle: "Vehicles",
+    appPosting: "Flyers",
+    appTaxi: "Taxi",
+    appSpecialOps: "Special Ops",
+    appHousing: "Housing",
+    appPremium: "Top Up",
+    taxiTitle: "Taxi Shift",
+    housingTitle: "Housing / Stream Base",
+    premiumTitle: "Money Top-Up",
+    featuredSpotLabel: "Featured Spot",
+    featuredSpotBody: "Most shopping spots are on BUY Street",
+    foodHeroTitle: "Pick up from shops and deliver to homes",
+    foodHeroBody: "A dependable gig with solid payouts",
+    rewardLabel: "Reward",
+    destinationLabel: "Destination",
+    progressLabel: "Progress",
+    startDeliveryButton: "Start Delivery",
+    postingHeroTitle: "Drop flyers at shops and homes",
+    postingHeroBody: "Visit each stop and stack small rewards",
+    startPostingButton: "Start Posting",
+    taxiHeroTitle: "Rent a cab, pick up passengers, and drive them across town",
+    taxiHeroBody: "You pay the rental first, but it's a steady mid-tier income route.",
+    rentalFeeLabel: "Rental Fee",
+    currentStatusLabel: "Current Status",
+    fareTotalLabel: "Fare / Total",
+    startTaxiButton: "Start Taxi Shift",
+    endTaxiButton: "End Taxi Shift",
+    vehicleHeroTitle: "Choose how to move from your owned vehicles",
+    vehicleHeroBody: "Pick a bike or car to hop on instantly, then press E to get off.",
+    selectedVehicleLabel: "Selected Vehicle",
+    searchJobsLabel: "Search jobs",
+    midTierJobsLabel: "Mid-Tier Jobs",
+    highRiskJobsLabel: "High-Risk Jobs",
+    smallJobTitle: "Small Mission: Pick up and deliver documents",
+    smallJobSummary: "A short low-risk contract. Pays around ¥200-¥350 and sits between delivery work and the dangerous jobs.",
+    specialJobTitle: "Steal the briefcase",
+    specialJobSummary: "Pays around ¥900-¥1300. Starting it spawns a mission car nearby and begins the apartment infiltration route.",
+    rescueJobTitle: "Free the hostage from the transport van",
+    rescueJobSummary: "Pays around ¥700-¥1500. Chase the glowing transport van, get close, and unlock the restraint with hacking.",
+    cashoutJobTitle: "Recover the cash and take it to the bank",
+    cashoutJobSummary: "Pays around ¥1200-¥1800. Armed enemies will chase you after pickup. One hit fails the job, but you can shoot back.",
+    housingHeroTitle: "Buy homes to boost your PC streaming income",
+    housingHeroBody: "After buying one, enter it on the map and stream from the PC. Higher levels earn more.",
+    currentBaseLabel: "Current Base",
+    streamIncomeLabel: "Estimated Stream Income",
+    stateLabel: "State",
+    premiumHeroTitle: "Top up in-game money with Stripe",
+    premiumHeroBody: "Funds go to the logged-in account and appear after payment confirmation.",
+    paymentMethodLabel: "Payment Method",
+    paymentMethodBody: "Stripe Checkout for web",
+    beforePurchaseLabel: "Before Purchase",
+    phoneLabel: "Phone",
+    accountTitle: "Login / Sign Up",
+    accountGuideNewTitle: "First time here",
+    accountGuideNewBody: "Enter your email and password, then press Sign Up. Open the email confirmation link first, then log in.",
+    accountGuideExistingTitle: "Already registered",
+    accountGuideExistingBody: "Use the same email and password and press Login to load your cloud save on this device.",
+    emailLabel: "Email",
+    passwordLabel: "Password",
+    passwordPlaceholder: "8 characters or more",
+    accountRegisterButton: "New here, Sign Up",
+    accountLoginButton: "Already registered, Login",
+    accountLogoutButton: "Log Out",
+    accountNote: "If the email does not arrive, check spam too. Delivery may fail if Supabase email settings are incomplete.",
+    accountSync: "Sync",
+    accountCloud: "Cloud",
+    accountNeedsLogin: "You need to register or log in to play. Continue with your email.",
+    accountInitializing: "Initializing Supabase.",
+    accountLoggedIn: "Logged in as {email}. {sync}",
+    accountCloudConnected: "Cloud save connected.",
+    accountAutoSave: "Progress on this device is saved automatically.",
+    premiumChoosePack: "Log in to choose a purchase pack",
+    premiumStripeMissing: "Stripe is not configured yet",
+    premiumLoginRequired: "Log in from the top-right sync button before purchasing",
+    premiumPackMissing: "No packs are available yet",
+    premiumCheckoutPreparing: "Preparing Stripe Checkout...",
+    premiumConfirming: "Checking payment status...",
+    premiumDestination: "Purchasing for: {target}",
+    loggedInAccount: "logged-in account",
+    premiumPackFallbackDesc: "The purchased amount is added directly to your money.",
+    premiumPackAmount: "In-game cash {amount}",
+    premiumBuyPreparing: "Preparing...",
+    premiumBuyPrice: "Buy for {price} JPY",
+    uiNotOwned: "None",
+    uiNone: "None",
+    uiOnFoot: "Moving on foot",
+    uiRideHint: "Riding {name} - press E to get off",
+    uiVehicleSelected: "{name} selected",
+    uiVehicleActive: "Using {name}",
+    uiNoOwnedVehicles: "You don't own any vehicles yet",
+    uiBikeRideDesc: "Select this to move around on a bike.",
+    uiCarRideDesc: "Select this to move around in a vehicle.",
+    uiRiding: "Riding",
+    uiRide: "Ride",
+    uiEnterBikeShop: "Enter Bike Shop",
+    uiEnterCarShop: "Enter Car Dealer",
+    uiInventory: "Cars {car} / Bikes {bike} / Gear {gear}",
+    uiGoalNext: "Next goal: {label} in {amount}",
+    uiGoalMax: "Top tier reached: every vehicle purchased",
+    uiSpecialInProgress: "Operation in progress",
+    uiReviewJobList: "Reviewing the job list",
+    uiMissionInProgress: "Mission in progress",
+    uiStartMission: "Start a mission",
+    uiStreamStartAtPc: "Press E at the PC to start streaming",
+    uiStreamRunning: "Stream in progress",
+    uiPcOrExit: "PC or exit",
+    uiStreamWatching: "Streaming... {viewers} viewers",
+    uiStreamRevenue: "Revenue {amount}",
+    uiOpenPhonePrompt: "Use the phone at the bottom right to accept a job",
+    uiAcceptRequest: "Accept a job",
+    uiDeliveryAppActive: "Food delivery in progress",
+    uiPostingAppActive: "Posting job in progress",
+    uiSpecialOpsActive: "Special op in progress",
+    uiOpenOtherApps: "Return home to check other apps",
+    uiAppSwitchLocked: "Switching apps is disabled right now",
+    uiLowRiskJob: "Reward {reward} / low-risk mid-tier job",
+    uiMidTierJob: "Reward {reward} / mid-tier job",
+    uiArmedInterference: "Reward {reward} / armed resistance expected",
+    uiAmbushAfterPickup: "Reward {reward} / ambush after pickup",
+    uiOneHitFail: "One hit fails the mission / Fight with Space",
+    uiOneHitFailShoot: "One hit fails the mission / Shoot with Space",
+    uiPostingProgress: "{current}/{total} stops done / next {stop}",
+    uiJobCompleteMoney: "Earned {reward}",
+    uiJobComplete: "Job complete",
+    uiNextDelivery: "You can start the next delivery",
+    uiNextPosting: "You can start the next posting route",
+    uiNextSpecial: "You can start the next special job",
+    uiRescueChase: "Track the transport van",
+    uiRescueApproach: "Move into hacking range",
+    uiRescueTrack: "Track the van",
+    uiRescueHackRunning: "Hack slot sequence running",
+    uiRescueHackOpen: "The hack UI opens when you get close",
+    uiRescueUnlock: "Unlock the van without stopping it",
+    uiRescueRewardNeedRange: "Reward {reward} / get into signal range",
+    uiHostageSafe: "Protect the hostage",
+    uiHostageSecured: "Hostage secured",
+    uiTalkToHostage: "Talk to the hostage",
+    uiPressEForReward: "Press E to collect the reward",
+    uiRescueRewardDone: "Reward {reward} / lock already released",
+    uiMissionVehicleWait: "Waiting to board the mission car",
+    uiSecureFastVehicle: "Reward {reward} / secure the fast vehicle",
+    uiApartmentPrep: "Preparing the apartment infiltration",
+    uiInteriorShift: "Enter the marked point to switch indoors",
+    uiExitWithBriefcase: "Escape with the briefcase",
+    uiFightToExit: "Shoot with Space while heading to the exit",
+    uiCarryCaseToDropoff: "Carry the case to the drop-off point",
+    uiMissionClearOnDelivery: "Mission clears on delivery",
+    uiCaseSecured: "Reward {reward} / case secured",
+    uiTaxiPickupPassenger: "Pick up the passenger at {name}",
+    uiTaxiPickupTarget: "Head to passenger: {name}",
+    uiTaxiDeliverPassenger: "Drive the passenger to {name}",
+    uiTaxiDestinationTarget: "Destination: {name}",
+    uiPickupItem: "Pick up the item at {name}",
+    uiPickupTarget: "Head to pickup: {name}",
+    uiDeliveryTo: "Deliver to {name}",
+    uiDeliveryTarget: "Head to delivery: {name}",
+    uiDeliveryReward: "Delivery reward {reward}",
+    uiSmallMissionRunning: "Small mission in progress",
+    uiSmallMissionPickup: "Recover the request item at {name}",
+    uiSmallMissionPickupTarget: "Pickup point: {name}",
+    uiSmallMissionReceiveAt: "Collect the request item at {name}",
+    uiReturnAfterPickup: "After pickup, head to the handoff point",
+    uiRecoverAt: "Recover at {name}",
+    uiDeliverRequestItem: "Deliver the request item to {name}",
+    uiHandoffTarget: "Drop-off: {name}",
+    uiSmallMissionDelivering: "Reward {reward} / handoff in progress",
+    uiDeliveryBigReward: "Complete the drop for a bigger payout",
+    uiCashPickup: "Recover the cash at {name}",
+    uiCashPickupTarget: "Cash pickup point: {name}",
+    uiSecureCashAt: "Secure the cash at {name}",
+    uiEscortToBank: "Escort it to the bank after pickup",
+    uiRecoverCashAt: "Recover cash at {name}",
+    uiCarryCashToBank: "Carry the cash to {name}",
+    uiBankEscortTarget: "Escort to bank: {name}",
+    uiDeliverCashTo: "Deliver the cash to {name}",
+    uiFightToBank: "Fight through the armed interference on the way",
+    uiEscortTo: "Escort it to {name}",
+    uiFlyerDropAt: "Drop flyers at {name}",
+    uiFlyerTarget: "Head to {kind}: {name}",
+    uiPostingPay: "Per stop +{perStop} / Total {reward}",
+    uiRewardEarned: "Earned {reward}",
+    uiApproachVanHack: "Get close to the glowing van and start hacking",
+    uiApproachFreedHostage: "Approach the freed hostage to claim the reward",
+    uiHeadToMissionVehicle: "Head to the nearby mission vehicle",
+    uiBoardMissionVehicle: "Board the mission vehicle",
+    uiHeadToEntryGlow: "Head to the glowing entry point at {name}",
+    uiInfiltrationPoint: "Infiltration point: {name}",
+    uiInfiltrateAt: "Infiltrate {name}",
+    uiEscapeWithBriefcase: "Escape through the exit with the briefcase",
+    uiHeadToExitInside: "Head to the interior exit",
+    uiDeliverBriefcaseTo: "Deliver the briefcase to {name}",
+    uiDropoffPoint: "Drop-off point: {name}",
+    uiFoodProgressDefault: "Pick up at a store and deliver to a home",
+    uiPostingProgressDefault: "Choose a job from the home screen",
+    uiHomeKind: "home",
+    uiShopKind: "shop",
+    taxiRentalStart: "Pay {fee} up front to rent the cab",
+    taxiFareCurrent: "Current fare {fare} / Total {total}",
+    taxiFareNext: "Next fare {min}-{max} / Total {total}",
+    taxiAvailable: "Ready to start from the phone",
+    taxiRentalAdvance: "{fee} is charged up front when you start",
+    taxiRentedStatus: "Rental complete",
+    taxiAssigningPassenger: "Assigning the next passenger",
+    taxiSearchingPassengerStatus: "Searching for a passenger",
+    taxiSearchingPassengerProgress: "Pick up near {name} for about {fare}",
+    taxiPassengerOnBoardStatus: "Passenger on board",
+    taxiPassengerOnBoardProgress: "Head to {destination}",
+    taxiDeliveringStatus: "Driving passenger",
+    taxiDeliveringProgress: "Driving to {destination} / Net profit {profit}",
+    taxiFareCompleteStatus: "Trip complete",
+    taxiFareCompleteProgress: "{count} trips total / Net {profit}",
+    taxiEndedStatus: "Shift ended",
+    taxiEndedProgress: "Final profit {profit}",
+    housingOwnedLabel: "Lv{level} {label}{building}",
+    housingBuildingSuffix: " / {name}",
+    housingViewerRange: "Viewers {range} / Per stream {income}",
+    housingNextCandidate: "Next option Lv1 shack / Per stream {income}",
+    housingBuyFromPhone: "Buy your base from the phone",
+    housingStreamEnded: "Stream finished {label}",
+    housingCooldown: "Next stream in {seconds}s",
+    housingGoHome: "Go to your owned house and start streaming from the PC",
+    housingViewersBase: "{base} / {min}-{max} viewers",
+    housingIncomeMeta: "Stream income {min}-{max}",
+    housingPriceMeta: "Price {price}",
+    housingOwnedButton: "Owned",
+    housingUpgradeOrderButton: "Buy previous house first",
+    housingBuyButton: "Buy",
+    housingNotEnoughButton: "Not enough money",
+    jobPayLabel: "Entry {fee} / Reward {min}-{max}",
+    taxiPayLabel: "Rental {fee} / Fare {min}-{max}",
+  },
+};
+
+function translate(key, params = {}) {
+  const lang = gameState?.language || "ja";
+  const template = I18N[lang]?.[key] ?? I18N.ja[key] ?? key;
+  return String(template).replace(/\{(\w+)\}/g, (_, name) => `${params[name] ?? ""}`);
+}
+
+function setTextByI18nAttribute(attribute, setter) {
+  document.querySelectorAll(`[${attribute}]`).forEach((element) => {
+    const key = element.getAttribute(attribute);
+    if (!key) return;
+    setter(element, translate(key));
+  });
+}
+
+function applyStaticTranslations() {
+  document.documentElement.lang = gameState.language;
+  setTextByI18nAttribute("data-i18n", (element, value) => {
+    element.textContent = value;
+  });
+  setTextByI18nAttribute("data-i18n-placeholder", (element, value) => {
+    element.setAttribute("placeholder", value);
+  });
+  setTextByI18nAttribute("data-i18n-title", (element, value) => {
+    element.setAttribute("title", value);
+  });
+  setTextByI18nAttribute("data-i18n-aria-label", (element, value) => {
+    element.setAttribute("aria-label", value);
+  });
+  if (accountLangButton) {
+    accountLangButton.classList.toggle("active", gameState.language === "en");
+    accountLangButton.textContent = gameState.language === "en" ? "JPMODE" : "USMODE";
+  }
+  if (hudLangButton) {
+    hudLangButton.classList.toggle("active", gameState.language === "en");
+    hudLangButton.textContent = gameState.language === "en" ? translate("hudLangJapanese") : translate("hudLangEnglish");
+  }
+  const soundButton = document.getElementById("sound-toggle-button");
+  if (soundButton) {
+    soundButton.setAttribute("title", AudioEngine.isMuted() ? translate("soundOffTitle") : translate("soundOnTitle"));
+  }
+}
+
+function setLanguage(language, options = {}) {
+  const nextLanguage = language === "en" ? "en" : "ja";
+  gameState.language = nextLanguage;
+  if (options.persist !== false) {
+    try {
+      localStorage.setItem(LANGUAGE_KEY, nextLanguage);
+    } catch (_) {}
+  }
+  applyStaticTranslations();
+  updateAccountUi();
+  renderPremiumShop();
+  updateVehicleApp();
+  renderBikeShopItems();
+  renderCarShopItems();
+  renderHousingApp();
+  updateHousingUI();
+  updateInventoryStatus();
+  updateEnterShopButton();
+  updateHUD();
+}
+
+function getStoredLanguage() {
+  try {
+    const value = localStorage.getItem(LANGUAGE_KEY);
+    return value === "en" ? "en" : "ja";
+  } catch (_) {
+    return "ja";
+  }
 }
 
 function applySaveData(data) {
@@ -550,7 +1166,7 @@ function setAccountStatus(message) {
 
 function updateAccountUi() {
   if (accountButton) {
-    accountButton.textContent = gameState.cloud.username ? "クラウド" : "同期";
+    accountButton.textContent = gameState.cloud.username ? translate("accountCloud") : translate("accountSync");
   }
   if (accountLogoutButton) {
     accountLogoutButton.disabled = !gameState.cloud.token;
@@ -563,15 +1179,18 @@ function updateAccountUi() {
   }
   if (gameState.cloud.username) {
     setAccountStatus(
-      `${gameState.cloud.username} でログイン中。${gameState.cloud.saveUpdatedAt ? "クラウド保存に接続済みです。" : "この端末の進行は自動で保存されます。"}`
+      translate("accountLoggedIn", {
+        email: gameState.cloud.username,
+        sync: gameState.cloud.saveUpdatedAt ? translate("accountCloudConnected") : translate("accountAutoSave"),
+      })
     );
   } else if (gameState.cloud.statusMessage) {
     setAccountStatus(gameState.cloud.statusMessage);
   } else {
     setAccountStatus(
       gameState.cloud.isReady
-        ? "このゲームは登録またはログインが必要です。メールアドレスで続けてください。"
-      : "Supabase を初期化しています。"
+        ? translate("accountNeedsLogin")
+        : translate("accountInitializing")
     );
   }
 }
@@ -588,19 +1207,21 @@ function renderPremiumShop() {
     return;
   }
 
-  let statusMessage = "ログインすると購入パックを選べます";
+  let statusMessage = translate("premiumChoosePack");
   if (!gameState.payments.enabled) {
-    statusMessage = gameState.payments.statusMessage || "Stripeの設定がまだ入っていません";
+    statusMessage = gameState.payments.statusMessage || translate("premiumStripeMissing");
   } else if (!gameState.cloud.token) {
-    statusMessage = "購入するには右上の同期からログインしてください";
+    statusMessage = translate("premiumLoginRequired");
   } else if (!gameState.payments.packs.length) {
-    statusMessage = "販売パックはまだ登録されていません";
+    statusMessage = translate("premiumPackMissing");
   } else if (gameState.payments.isCreatingCheckout) {
-    statusMessage = "Stripe Checkout を準備しています...";
+    statusMessage = translate("premiumCheckoutPreparing");
   } else if (gameState.payments.isConfirmingReturn) {
-    statusMessage = "決済結果を確認しています...";
+    statusMessage = translate("premiumConfirming");
   } else {
-    statusMessage = `購入先: ${gameState.cloud.username || "ログイン中のアカウント"}`;
+    statusMessage = translate("premiumDestination", {
+      target: gameState.cloud.username || translate("loggedInAccount"),
+    });
   }
   setPremiumStatus(statusMessage);
 
@@ -617,21 +1238,23 @@ function renderPremiumShop() {
     copy.append(title);
 
     const desc = document.createElement("p");
-    desc.textContent = pack.description || "購入した分だけ、そのまま所持金に反映されます。";
+    desc.textContent = pack.description || translate("premiumPackFallbackDesc");
     copy.append(desc);
 
     const meta = document.createElement("div");
     meta.className = "premium-pack-meta";
 
     const amount = document.createElement("strong");
-    amount.textContent = `ゲーム内通貨 ${formatCurrency(pack.moneyAmount)} ドル`;
+    amount.textContent = translate("premiumPackAmount", { amount: formatCurrency(pack.moneyAmount) });
     meta.append(amount);
     copy.append(meta);
 
     const button = document.createElement("button");
     button.type = "button";
     button.className = "premium-pack-buy-button";
-    button.textContent = gameState.payments.isCreatingCheckout ? "準備中..." : `${Math.round(pack.priceJpy)}円で買う`;
+    button.textContent = gameState.payments.isCreatingCheckout
+      ? translate("premiumBuyPreparing")
+      : translate("premiumBuyPrice", { price: Math.round(pack.priceJpy) });
     button.disabled =
       !gameState.payments.enabled ||
       !gameState.cloud.token ||
@@ -1036,6 +1659,7 @@ const touchInput = {
 };
 
 const gameState = {
+  language: getStoredLanguage(),
   money: 0,
   lastTime: 0,
   timeElapsedSeconds: 0,
@@ -1123,32 +1747,32 @@ const taxiState = {
 };
 
 const UI_TEXT = {
-  idle: "待機中",
-  pickup: "受取先へ向かう",
-  delivery: "配達先へ向かう",
-  posting: "投函先へ向かう",
-  smallMissionPickup: "依頼品の回収へ向かう",
-  smallMissionDelivery: "受け渡し先へ向かう",
-  briefcaseVehicle: "任務車両へ向かう",
-  briefcaseDrive: "潜入地点へ向かう",
-  briefcaseInfiltration: "マンション潜入中",
-  briefcaseEscape: "ケースを持って脱出",
-  briefcaseReturn: "受渡し地点へ向かう",
-  vanSpawned: "護送車を追跡中",
-  playerNearVan: "護送車へ侵入可能",
-  hacking: "護送車をハッキング中",
-  hostageFreed: "人質を保護する",
-  rewardReady: "人質から報酬を受け取る",
-  cashoutPickup: "現金回収ポイントへ向かう",
-  cashoutBank: "現金を銀行へ護送中",
-  complete: "仕事完了！",
-  taxiReadyToStart: "タクシー営業所で待機中",
-  taxiRented: "タクシー車両を受領",
-  taxiSearchingPassenger: "乗客を探す",
-  taxiPassengerOnBoard: "乗客が乗車した",
-  taxiDelivering: "目的地へ送迎中",
-  taxiFareComplete: "送迎完了",
-  taxiEnded: "タクシー業務を終了",
+  idle: { ja: "待機中", en: "Idle" },
+  pickup: { ja: "受取先へ向かう", en: "Head to pickup" },
+  delivery: { ja: "配達先へ向かう", en: "Head to delivery" },
+  posting: { ja: "投函先へ向かう", en: "Head to drop-off" },
+  smallMissionPickup: { ja: "依頼品の回収へ向かう", en: "Head to retrieval point" },
+  smallMissionDelivery: { ja: "受け渡し先へ向かう", en: "Head to handoff point" },
+  briefcaseVehicle: { ja: "任務車両へ向かう", en: "Head to the mission vehicle" },
+  briefcaseDrive: { ja: "潜入地点へ向かう", en: "Head to the infiltration point" },
+  briefcaseInfiltration: { ja: "マンション潜入中", en: "Apartment infiltration" },
+  briefcaseEscape: { ja: "ケースを持って脱出", en: "Escape with the case" },
+  briefcaseReturn: { ja: "受渡し地点へ向かう", en: "Head to the drop-off" },
+  vanSpawned: { ja: "護送車を追跡中", en: "Tracking the transport van" },
+  playerNearVan: { ja: "護送車へ侵入可能", en: "Van in hacking range" },
+  hacking: { ja: "護送車をハッキング中", en: "Hacking the van" },
+  hostageFreed: { ja: "人質を保護する", en: "Protect the hostage" },
+  rewardReady: { ja: "人質から報酬を受け取る", en: "Claim the reward" },
+  cashoutPickup: { ja: "現金回収ポイントへ向かう", en: "Head to the cash pickup" },
+  cashoutBank: { ja: "現金を銀行へ護送中", en: "Escort the cash to the bank" },
+  complete: { ja: "仕事完了！", en: "Job complete!" },
+  taxiReadyToStart: { ja: "タクシー営業所で待機中", en: "Waiting at taxi depot" },
+  taxiRented: { ja: "タクシー車両を受領", en: "Cab rented" },
+  taxiSearchingPassenger: { ja: "乗客を探す", en: "Find a passenger" },
+  taxiPassengerOnBoard: { ja: "乗客が乗車した", en: "Passenger onboard" },
+  taxiDelivering: { ja: "目的地へ送迎中", en: "Driving to destination" },
+  taxiFareComplete: { ja: "送迎完了", en: "Trip complete" },
+  taxiEnded: { ja: "タクシー業務を終了", en: "Taxi shift ended" },
 };
 
 const MISSION_VEHICLE = {
@@ -2392,6 +3016,19 @@ function getTimeOfDay() {
   return TIME_OF_DAY_CONFIG.segments[TIME_OF_DAY_CONFIG.segments.length - 1];
 }
 
+function getLocalizedTimeOfDayLabel(segment) {
+  if (!segment) return "";
+  if (gameState.language !== "en") return segment.label;
+  return (
+    {
+      morning: "Morning",
+      day: "Day",
+      evening: "Evening",
+      night: "Night",
+    }[segment.key] || segment.label
+  );
+}
+
 function formatGameTime(totalMinutes) {
   const safeMinutes = Math.floor(totalMinutes % 1440);
   const hours = Math.floor(safeMinutes / 60);
@@ -2406,8 +3043,12 @@ function updateTimeSystem(deltaTime) {
 function getJobTypeMeta(jobType) {
   if (jobType === "taxi") {
     return {
-      label: "タクシー業務",
-      payLabel: `レンタル ${formatCurrency(ECONOMY.taxi.rentalFee)} / 運賃 ${formatCurrency(ECONOMY.taxi.fareMin)}〜${formatCurrency(ECONOMY.taxi.fareMax)}`,
+      label: gameState.language === "en" ? "Taxi" : "タクシー業務",
+      payLabel: translate("taxiPayLabel", {
+        fee: formatCurrency(ECONOMY.taxi.rentalFee),
+        min: formatCurrency(ECONOMY.taxi.fareMin),
+        max: formatCurrency(ECONOMY.taxi.fareMax),
+      }),
     };
   }
 
@@ -2427,28 +3068,28 @@ function getJobTypeMeta(jobType) {
 
   if (jobType === "special") {
     return {
-      label: "危険ジョブ",
+      label: gameState.language === "en" ? "High-Risk Job" : "危険ジョブ",
       payLabel: formatJobPayLabel(ECONOMY.jobs.riskyBriefcase),
     };
   }
 
   if (jobType === "rescue") {
     return {
-      label: "危険ジョブ",
+      label: gameState.language === "en" ? "High-Risk Job" : "危険ジョブ",
       payLabel: formatJobPayLabel(ECONOMY.jobs.riskyRescue),
     };
   }
 
   if (jobType === "cashout") {
     return {
-      label: "危険ジョブ",
+      label: gameState.language === "en" ? "High-Risk Job" : "危険ジョブ",
       payLabel: formatJobPayLabel(ECONOMY.jobs.riskyCashout),
     };
   }
 
   return {
     label: ECONOMY.jobs.posting.label,
-    payLabel: `${formatCurrency(ECONOMY.jobs.posting.min)}〜${formatCurrency(ECONOMY.jobs.posting.max)} / 参加費 ${formatCurrency(ECONOMY.jobs.posting.entryFee)} / ${ECONOMY.jobs.posting.role}`,
+    payLabel: formatJobPayLabel(ECONOMY.jobs.posting),
   };
 }
 
@@ -2475,11 +3116,15 @@ function getMissionConfig(jobType) {
 }
 
 function formatJobPayLabel(rangeConfig) {
-  return `${formatCurrency(rangeConfig.min)}〜${formatCurrency(rangeConfig.max)} / 参加費 ${formatCurrency(rangeConfig.entryFee || 0)} / ${rangeConfig.role}`;
+  return translate("jobPayLabel", {
+    fee: formatCurrency(rangeConfig.entryFee || 0),
+    min: formatCurrency(rangeConfig.min),
+    max: formatCurrency(rangeConfig.max),
+  }) + (rangeConfig.role ? ` / ${rangeConfig.role}` : "");
 }
 
 function formatCurrency(amount) {
-  return `${ECONOMY.currencySymbol}${Math.round(amount).toLocaleString("ja-JP")}`;
+  return `${ECONOMY.currencySymbol}${Math.round(amount).toLocaleString(gameState.language === "en" ? "en-US" : "ja-JP")}`;
 }
 
 function canAfford(amount) {
@@ -2834,24 +3479,30 @@ function updateHousingUI() {
   const ownedBuilding = getOwnedHouseBuilding();
   setTextContent(
     housingCurrentHouseLabel,
-    ownedHouse ? `Lv${gameState.house.level} ${ownedHouse.label}${ownedBuilding ? ` / ${ownedBuilding.name}` : ""}` : "未所有"
+    ownedHouse
+      ? translate("housingOwnedLabel", {
+        level: gameState.house.level,
+        label: ownedHouse.label,
+        building: ownedBuilding ? translate("housingBuildingSuffix", { name: ownedBuilding.name }) : "",
+      })
+      : translate("uiNotOwned")
   );
   setTextContent(
     housingIncomeLabel,
     ownedHouse
-      ? `視聴者 ${getStreamViewerRange()} / 1配信 ${getStreamIncomeRange()}`
-      : `次の候補 Lv1 ボロ屋 / 1配信 ${getStreamIncomeRange(1)}`
+      ? translate("housingViewerRange", { range: getStreamViewerRange(), income: getStreamIncomeRange() })
+      : translate("housingNextCandidate", { income: getStreamIncomeRange(1) })
   );
 
-  let statusText = "スマホから拠点を購入できます";
+  let statusText = translate("housingBuyFromPhone");
   if (gameState.house.streaming && !gameState.house.streaming.complete) {
-    statusText = `配信中... 視聴者 ${gameState.house.streaming.viewers}人`;
+    statusText = translate("uiStreamWatching", { viewers: gameState.house.streaming.viewers });
   } else if (gameState.house.streaming?.complete) {
-    statusText = `配信終了 ${gameState.house.streaming.liveLabel}`;
+    statusText = translate("housingStreamEnded", { label: gameState.house.streaming.liveLabel });
   } else if (gameState.house.cooldown > 0) {
-    statusText = `次の配信まで ${gameState.house.cooldown.toFixed(1)} 秒`;
+    statusText = translate("housingCooldown", { seconds: gameState.house.cooldown.toFixed(1) });
   } else if (ownedHouse) {
-    statusText = "所有中の家へ行き、PCから配信を開始できます";
+    statusText = translate("housingGoHome");
   }
   setTextContent(housingStatusLabel, statusText);
 }
@@ -2875,7 +3526,11 @@ function renderHousingApp() {
     const title = document.createElement("h3");
     title.textContent = house.label;
     const desc = document.createElement("p");
-    desc.textContent = `${house.baseName} / 視聴者 ${house.viewersMin}〜${house.viewersMax}人`;
+    desc.textContent = translate("housingViewersBase", {
+      base: house.baseName,
+      min: house.viewersMin,
+      max: house.viewersMax,
+    });
     info.append(title, desc);
 
     const chip = document.createElement("span");
@@ -2886,21 +3541,24 @@ function renderHousingApp() {
     const meta = document.createElement("div");
     meta.className = "housing-item-meta";
     const income = document.createElement("strong");
-    income.textContent = `配信収益 ${formatCurrency(house.min)}〜${formatCurrency(house.max)}`;
+    income.textContent = translate("housingIncomeMeta", {
+      min: formatCurrency(house.min),
+      max: formatCurrency(house.max),
+    });
     const price = document.createElement("span");
-    price.textContent = `価格 ${formatCurrency(house.price)}`;
+    price.textContent = translate("housingPriceMeta", { price: formatCurrency(house.price) });
     meta.append(income, price);
 
     const button = document.createElement("button");
     button.type = "button";
     if (isOwned) {
-      button.textContent = "所有中";
+      button.textContent = translate("housingOwnedButton");
       button.disabled = true;
     } else if (!isUnlocked) {
-      button.textContent = "前の家から購入";
+      button.textContent = translate("housingUpgradeOrderButton");
       button.disabled = true;
     } else {
-      button.textContent = canAfford(house.price) ? "購入する" : "所持金不足";
+      button.textContent = canAfford(house.price) ? translate("housingBuyButton") : translate("housingNotEnoughButton");
       button.disabled = !canAfford(house.price);
       button.addEventListener("click", () => purchaseHouse(level));
     }
@@ -3024,35 +3682,53 @@ function updateTaxiButtons() {
 function updateTaxiUI() {
   setTextContent(
     taxiRentalLabel,
-    `開始時に ${formatCurrency(ECONOMY.taxi.rentalFee)} を支払ってレンタル`
+    translate("taxiRentalStart", { fee: formatCurrency(ECONOMY.taxi.rentalFee) })
   );
   setTextContent(
     taxiFareLabel,
     isTaxiJobActive()
-      ? `現在の運賃 ${formatCurrency(taxiState.currentFare || ECONOMY.taxi.fareMin)} / 累計 ${formatCurrency(taxiState.totalFares)}`
-      : `次の送迎 ${formatCurrency(ECONOMY.taxi.fareMin)}〜${formatCurrency(ECONOMY.taxi.fareMax)} / 累計 ${formatCurrency(0)}`
+      ? translate("taxiFareCurrent", {
+        fare: formatCurrency(taxiState.currentFare || ECONOMY.taxi.fareMin),
+        total: formatCurrency(taxiState.totalFares),
+      })
+      : translate("taxiFareNext", {
+        min: formatCurrency(ECONOMY.taxi.fareMin),
+        max: formatCurrency(ECONOMY.taxi.fareMax),
+        total: formatCurrency(0),
+      })
   );
 
-  let statusText = "スマホから開始可能";
-  let progressText = `スマホで開始すると ${formatCurrency(ECONOMY.taxi.rentalFee)} が先に引かれます`;
+  let statusText = translate("taxiAvailable");
+  let progressText = translate("taxiRentalAdvance", { fee: formatCurrency(ECONOMY.taxi.rentalFee) });
   if (taxiState.status === "rented") {
-    statusText = "レンタル完了";
-    progressText = "次の乗客候補を割り当て中";
+    statusText = translate("taxiRentedStatus");
+    progressText = translate("taxiAssigningPassenger");
   } else if (taxiState.status === "searchingPassenger" && taxiState.passenger) {
-    statusText = "乗客を探しています";
-    progressText = `${taxiState.passenger.name} の近くで乗客を乗せると ${formatCurrency(taxiState.currentFare)} 見込み`;
+    statusText = translate("taxiSearchingPassengerStatus");
+    progressText = translate("taxiSearchingPassengerProgress", {
+      name: taxiState.passenger.name,
+      fare: formatCurrency(taxiState.currentFare),
+    });
   } else if (taxiState.status === "passengerOnBoard") {
-    statusText = "乗客が乗車しました";
-    progressText = `${taxiState.destination?.name || "目的地"} へ向かってください`;
+    statusText = translate("taxiPassengerOnBoardStatus");
+    progressText = translate("taxiPassengerOnBoardProgress", {
+      destination: taxiState.destination?.name || translate("destinationLabel"),
+    });
   } else if (taxiState.status === "delivering") {
-    statusText = "送迎中";
-    progressText = `${taxiState.destination?.name || "目的地"} へ送迎中 / 累計利益 ${formatCurrency(getTaxiNetProfit())}`;
+    statusText = translate("taxiDeliveringStatus");
+    progressText = translate("taxiDeliveringProgress", {
+      destination: taxiState.destination?.name || translate("destinationLabel"),
+      profit: formatCurrency(getTaxiNetProfit()),
+    });
   } else if (taxiState.status === "fareComplete") {
-    statusText = "送迎完了";
-    progressText = `累計 ${taxiState.tripsCompleted}件 / 純利益 ${formatCurrency(getTaxiNetProfit())}`;
+    statusText = translate("taxiFareCompleteStatus");
+    progressText = translate("taxiFareCompleteProgress", {
+      count: taxiState.tripsCompleted,
+      profit: formatCurrency(getTaxiNetProfit()),
+    });
   } else if (taxiState.status === "ended") {
-    statusText = "業務終了";
-    progressText = `最終利益 ${formatCurrency(getTaxiNetProfit())}`;
+    statusText = translate("taxiEndedStatus");
+    progressText = translate("taxiEndedProgress", { profit: formatCurrency(getTaxiNetProfit()) });
   }
 
   setTextContent(taxiStatusLabel, statusText);
@@ -3492,14 +4168,14 @@ function updateVehicleApp() {
 
   if (vehicleStatusLabel) {
     vehicleStatusLabel.textContent = ridingVehicle
-      ? `${ridingVehicle.name} に乗車中 ・ Eで降りる`
-      : "徒歩で移動中";
+      ? translate("uiRideHint", { name: ridingVehicle.name })
+      : translate("uiOnFoot");
   }
 
   if (vehicleSelectionLabel) {
     vehicleSelectionLabel.textContent = selectedVehicle
-      ? `${selectedVehicle.name}${ridingVehicle ? " を使用中" : " を選択中"}`
-      : "なし";
+      ? (ridingVehicle ? translate("uiVehicleActive", { name: selectedVehicle.name }) : translate("uiVehicleSelected", { name: selectedVehicle.name }))
+      : translate("uiNone");
   }
 
   if (!vehicleList) {
@@ -3512,7 +4188,7 @@ function updateVehicleApp() {
   if (ownedVehicles.length === 0) {
     const emptyState = document.createElement("div");
     emptyState.className = "phone-card";
-    emptyState.innerHTML = "<strong>まだ車両を所有していません</strong>";
+    emptyState.innerHTML = `<strong>${translate("uiNoOwnedVehicles")}</strong>`;
     vehicleList.append(emptyState);
     return;
   }
@@ -3532,8 +4208,8 @@ function updateVehicleApp() {
     description.textContent =
       vehicle.description ||
       (vehicle.inventoryKey === "bike"
-        ? "選択すると自転車に乗って移動できます。"
-        : "選択すると車両に乗って移動できます。");
+        ? translate("uiBikeRideDesc")
+        : translate("uiCarRideDesc"));
     const meta = document.createElement("strong");
     meta.textContent = getVehiclePerformanceLabel(vehicle);
     info.append(tag, title, description, meta);
@@ -3541,7 +4217,7 @@ function updateVehicleApp() {
     const button = document.createElement("button");
     const isRiding = gameState.ridingVehicleId === vehicle.id;
     button.type = "button";
-    button.textContent = isRiding ? "乗車中" : "乗る";
+    button.textContent = isRiding ? translate("uiRiding") : translate("uiRide");
     button.disabled = isRiding;
     button.addEventListener("click", () => {
       selectVehicle(vehicle.id);
@@ -3555,7 +4231,11 @@ function updateVehicleApp() {
 function updateInventoryStatus() {
   setTextContent(
     inventoryStatusLabel,
-    `車 ${gameState.inventory.car} / 自転車 ${gameState.inventory.bike} / 装備 ${gameState.inventory.gear}`
+    translate("uiInventory", {
+      car: gameState.inventory.car,
+      bike: gameState.inventory.bike,
+      gear: gameState.inventory.gear,
+    })
   );
 }
 
@@ -3576,7 +4256,7 @@ function updateEnterShopButton() {
     !isHouseMode();
   enterShopButton.classList.toggle("hidden", !shouldShow);
   if (shouldShow) {
-    enterShopButton.textContent = nearbyShopType === "carshop" ? "車屋に入る" : "自転車屋に入る";
+    enterShopButton.textContent = nearbyShopType === "carshop" ? translate("uiEnterCarShop") : translate("uiEnterBikeShop");
   }
 }
 
@@ -3740,7 +4420,7 @@ function updateShopInteraction() {
     if ((mission.stage === "hostageFreed" || mission.stage === "rewardReady") && mission.hostage && !mission.hostage.rewardClaimed) {
       const hostageDistance = Math.hypot(player.x - mission.hostage.x, player.y - mission.hostage.y);
       if (hostageDistance < 54) {
-        setTextContent(interactionStatusLabel, "E 人質: 話しかけて報酬を受け取る");
+        setTextContent(interactionStatusLabel, gameState.language === "en" ? "E Hostage: talk and claim the reward" : "E 人質: 話しかけて報酬を受け取る");
         return;
       }
     }
@@ -3751,8 +4431,8 @@ function updateShopInteraction() {
         setTextContent(
           interactionStatusLabel,
           mission.stage === "hacking"
-            ? "護送車に侵入中"
-            : "護送車の通信圏内です: ハッキングUIを確認"
+            ? (gameState.language === "en" ? "Inside the transport van system" : "護送車に侵入中")
+            : (gameState.language === "en" ? "Within signal range: open the hack UI" : "護送車の通信圏内です: ハッキングUIを確認")
         );
         return;
       }
@@ -3764,7 +4444,7 @@ function updateShopInteraction() {
     if (distance < 70) {
       gameState.nearbyShop = null;
       updateEnterShopButton();
-      setTextContent(interactionStatusLabel, "E 任務用車両: 乗り込んで指定地点へ向かう");
+      setTextContent(interactionStatusLabel, gameState.language === "en" ? "E Mission Vehicle: board and head to the marked point" : "E 任務用車両: 乗り込んで指定地点へ向かう");
       return;
     }
   }
@@ -3783,35 +4463,35 @@ function updateShopInteraction() {
   updateEnterShopButton();
 
   if (isPlayerNearOwnedHouse()) {
-    setTextContent(interactionStatusLabel, "E HOME: 家に入る");
+    setTextContent(interactionStatusLabel, gameState.language === "en" ? "E HOME: enter house" : "E HOME: 家に入る");
     return;
   }
 
   if (!nearestShop) {
     if (isTaxiJobActive()) {
       if (taxiState.status === "searchingPassenger" && taxiState.passenger) {
-        setTextContent(interactionStatusLabel, `タクシー業務中: ${taxiState.passenger.name} の客を拾う`);
+        setTextContent(interactionStatusLabel, gameState.language === "en" ? `Taxi shift: pick up the passenger at ${taxiState.passenger.name}` : `タクシー業務中: ${taxiState.passenger.name} の客を拾う`);
         return;
       }
       if ((taxiState.status === "passengerOnBoard" || taxiState.status === "delivering") && taxiState.destination) {
-        setTextContent(interactionStatusLabel, `タクシー業務中: ${taxiState.destination.name} へ送迎`);
+        setTextContent(interactionStatusLabel, gameState.language === "en" ? `Taxi shift: drive to ${taxiState.destination.name}` : `タクシー業務中: ${taxiState.destination.name} へ送迎`);
         return;
       }
     }
     if (isRescueMissionActive()) {
-      setTextContent(interactionStatusLabel, "発光する護送車を追跡中");
+      setTextContent(interactionStatusLabel, gameState.language === "en" ? "Tracking the glowing transport van" : "発光する護送車を追跡中");
       return;
     }
     if (isCashoutMissionActive()) {
       setTextContent(
         interactionStatusLabel,
         mission.stage === "cashoutBank"
-          ? "現金護送中: Space で応戦しつつ銀行へ"
-          : "現金回収ポイントへ移動中"
+          ? (gameState.language === "en" ? "Cash escort: fight with Space and head to the bank" : "現金護送中: Space で応戦しつつ銀行へ")
+          : (gameState.language === "en" ? "Heading to the cash pickup point" : "現金回収ポイントへ移動中")
       );
       return;
     }
-    setTextContent(interactionStatusLabel, "街を探索中");
+    setTextContent(interactionStatusLabel, gameState.language === "en" ? "Exploring the city" : "街を探索中");
     return;
   }
 
@@ -4219,7 +4899,10 @@ function startHackMinigame() {
     hackSlotView.classList.remove("hidden");
   }
   if (hackStatusLabel) {
-    hackStatusLabel.textContent = `リール 1 を ${RESCUE_SYMBOLS[mission.hack.targetSymbolIndex]} で停止してください`;
+    hackStatusLabel.textContent =
+      gameState.language === "en"
+        ? `Stop reel 1 on ${RESCUE_SYMBOLS[mission.hack.targetSymbolIndex]}`
+        : `リール 1 を ${RESCUE_SYMBOLS[mission.hack.targetSymbolIndex]} で停止してください`;
   }
   updateHackReelsUi();
   updateHUD();
@@ -4240,11 +4923,11 @@ function completeRescueHack() {
     radius: 10,
     freed: true,
     rewardClaimed: false,
-    name: "解放された人質",
+    name: gameState.language === "en" ? "Freed Hostage" : "解放された人質",
   };
   setHackOverlayOpen(false);
   updateHUD();
-  showToast("拘束ロック解除。人質を保護して報酬を受け取れ");
+  showToast(gameState.language === "en" ? "Lock released. Protect the hostage and claim the reward." : "拘束ロック解除。人質を保護して報酬を受け取れ");
 }
 
 function tryAssistHackStop(reel, targetSymbolIndex) {
@@ -4290,8 +4973,10 @@ function stopHackReel() {
   if (hackStatusLabel) {
     hackStatusLabel.textContent =
       mission.hack.stopIndex < 3
-        ? `リール ${mission.hack.stopIndex + 1} を ${RESCUE_SYMBOLS[mission.hack.targetSymbolIndex]} で停止してください`
-        : "判定中...";
+        ? (gameState.language === "en"
+          ? `Stop reel ${mission.hack.stopIndex + 1} on ${RESCUE_SYMBOLS[mission.hack.targetSymbolIndex]}`
+          : `リール ${mission.hack.stopIndex + 1} を ${RESCUE_SYMBOLS[mission.hack.targetSymbolIndex]} で停止してください`)
+        : (gameState.language === "en" ? "Checking..." : "判定中...");
   }
 
   if (mission.hack.stopIndex >= mission.hack.reels.length) {
@@ -4313,9 +4998,12 @@ function stopHackReel() {
       hackSlotView.classList.add("hidden");
     }
     if (hackStatusLabel) {
-      hackStatusLabel.textContent = `同期失敗: ${RESCUE_SYMBOLS[mission.hack.targetSymbolIndex]} を狙ってください`;
+      hackStatusLabel.textContent =
+        gameState.language === "en"
+          ? `Sync failed: aim for ${RESCUE_SYMBOLS[mission.hack.targetSymbolIndex]}`
+          : `同期失敗: ${RESCUE_SYMBOLS[mission.hack.targetSymbolIndex]} を狙ってください`;
     }
-    showToast("ハッキング失敗。もう一度近距離から侵入せよ");
+    showToast(gameState.language === "en" ? "Hack failed. Get close and try again." : "ハッキング失敗。もう一度近距離から侵入せよ");
     updateHUD();
     updateHackReelsUi();
   }
@@ -4422,7 +5110,11 @@ function startMission(jobType = gameState.selectedJobType) {
   const missionConfig = getMissionConfig(jobType);
   const entryFee = missionConfig?.entryFee || 0;
   if (entryFee > 0 && !spendMoney(entryFee, `${missionConfig.label} 参加費`, { source: "purchase" })) {
-    showToast(`${missionConfig.label} の参加費 ${formatCurrency(entryFee)} が足りません`);
+    showToast(
+      gameState.language === "en"
+        ? `Not enough money for the ${missionConfig.label} entry fee: ${formatCurrency(entryFee)}`
+        : `${missionConfig.label} の参加費 ${formatCurrency(entryFee)} が足りません`
+    );
     return;
   }
 
@@ -4451,7 +5143,11 @@ function startMission(jobType = gameState.selectedJobType) {
     mission.deliveryPoint = shuffledDeliveryPoints[0];
     mission.reward = randomRewardFromRange(ECONOMY.jobs.delivery);
     mission.stage = "pickup";
-    showToast(`Foodデリバリー開始: 参加費 ${formatCurrency(entryFee)} / ${mission.pickupPoint.name} で受け取り、${mission.deliveryPoint.name} へ届けよう`);
+    showToast(
+      gameState.language === "en"
+        ? `Food delivery started: entry ${formatCurrency(entryFee)} / Pick up at ${mission.pickupPoint.name} and deliver to ${mission.deliveryPoint.name}`
+        : `Foodデリバリー開始: 参加費 ${formatCurrency(entryFee)} / ${mission.pickupPoint.name} で受け取り、${mission.deliveryPoint.name} へ届けよう`
+    );
   } else if (jobType === "smallMission") {
     const pickupCandidates = [...mapData.specialReturnPoints].sort(() => Math.random() - 0.5);
     const deliveryCandidates = [...mapData.specialEntryPoints].sort(() => Math.random() - 0.5);
@@ -4460,7 +5156,11 @@ function startMission(jobType = gameState.selectedJobType) {
       deliveryCandidates.find((point) => point.name !== mission.pickupPoint?.name) || deliveryCandidates[0];
     mission.reward = randomRewardFromRange(ECONOMY.jobs.smallMission);
     mission.stage = "smallMissionPickup";
-    showToast(`小ミッション開始: 参加費 ${formatCurrency(entryFee)} / ${mission.pickupPoint.name} で依頼品を受け取り、${mission.deliveryPoint.name} へ運べ`);
+    showToast(
+      gameState.language === "en"
+        ? `Small mission started: entry ${formatCurrency(entryFee)} / Collect the item at ${mission.pickupPoint.name} and take it to ${mission.deliveryPoint.name}`
+        : `小ミッション開始: 参加費 ${formatCurrency(entryFee)} / ${mission.pickupPoint.name} で依頼品を受け取り、${mission.deliveryPoint.name} へ運べ`
+    );
   } else if (jobType === "posting") {
     const stopCount = randomInt(ECONOMY.jobs.posting.stopCountMin, ECONOMY.jobs.posting.stopCountMax);
     const shuffledPostingPoints = [...mapData.postingPoints].sort(() => Math.random() - 0.5);
@@ -4470,7 +5170,11 @@ function startMission(jobType = gameState.selectedJobType) {
     mission.pickupPoint = null;
     mission.deliveryPoint = null;
     mission.stage = "posting";
-    showToast(`ポスティング開始: 参加費 ${formatCurrency(entryFee)} / ${mission.stops.length}件の投函で合計 ${formatCurrency(mission.reward)} を目指そう`);
+    showToast(
+      gameState.language === "en"
+        ? `Posting started: entry ${formatCurrency(entryFee)} / Deliver to ${mission.stops.length} stops for a total of ${formatCurrency(mission.reward)}`
+        : `ポスティング開始: 参加費 ${formatCurrency(entryFee)} / ${mission.stops.length}件の投函で合計 ${formatCurrency(mission.reward)} を目指そう`
+    );
   } else if (jobType === "special") {
     const shuffledEntries = [...mapData.specialEntryPoints].sort(() => Math.random() - 0.5);
     const shuffledReturns = [...mapData.specialReturnPoints].sort(() => Math.random() - 0.5);
@@ -4481,7 +5185,11 @@ function startMission(jobType = gameState.selectedJobType) {
     mission.entryPoint = shuffledEntries[0];
     mission.returnPoint = shuffledReturns.find((point) => point.name !== mission.entryPoint.name) || shuffledReturns[0];
     mission.stage = "briefcaseVehicle";
-    showToast(`危険ジョブ開始: 参加費 ${formatCurrency(entryFee)} / 近くの任務用車両に乗り、${mission.entryPoint.name} へ向かえ`);
+    showToast(
+      gameState.language === "en"
+        ? `High-risk job started: entry ${formatCurrency(entryFee)} / Board the nearby mission vehicle and head to ${mission.entryPoint.name}`
+        : `危険ジョブ開始: 参加費 ${formatCurrency(entryFee)} / 近くの任務用車両に乗り、${mission.entryPoint.name} へ向かえ`
+    );
   } else if (jobType === "cashout") {
     const pickupCandidates = [...mapData.specialReturnPoints].sort(() => Math.random() - 0.5);
     const bankCandidates = [...mapData.bankPoints].sort(() => Math.random() - 0.5);
@@ -4496,14 +5204,22 @@ function startMission(jobType = gameState.selectedJobType) {
     mission.deliveryPoint = mission.bankPoint;
     mission.reward = randomRewardFromRange(ECONOMY.jobs.riskyCashout);
     mission.stage = "cashoutPickup";
-    showToast(`危険ジョブ開始: 参加費 ${formatCurrency(entryFee)} / ${mission.pickupPoint.name} で現金を回収し、${mission.bankPoint.name} まで運べ`);
+    showToast(
+      gameState.language === "en"
+        ? `High-risk job started: entry ${formatCurrency(entryFee)} / Recover the cash at ${mission.pickupPoint.name} and take it to ${mission.bankPoint.name}`
+        : `危険ジョブ開始: 参加費 ${formatCurrency(entryFee)} / ${mission.pickupPoint.name} で現金を回収し、${mission.bankPoint.name} まで運べ`
+    );
   } else {
     mission.pickupPoint = null;
     mission.deliveryPoint = null;
     mission.reward = randomRewardFromRange(ECONOMY.jobs.riskyRescue);
     createRescueVanMission();
     mission.stage = "vanSpawned";
-    showToast(`危険ジョブ開始: 参加費 ${formatCurrency(entryFee)} / 発光する護送車を追跡してハッキングせよ`);
+    showToast(
+      gameState.language === "en"
+        ? `High-risk job started: entry ${formatCurrency(entryFee)} / Track the glowing transport van and hack it`
+        : `危険ジョブ開始: 参加費 ${formatCurrency(entryFee)} / 発光する護送車を追跡してハッキングせよ`
+    );
   }
 
   mission.active = true;
@@ -4518,16 +5234,16 @@ function completeMission() {
   updateHUD();
   showToast(
     mission.type === "posting"
-      ? `ポスティング完了! 合計 +${formatCurrency(mission.reward)}`
+      ? (gameState.language === "en" ? `Posting complete! Total +${formatCurrency(mission.reward)}` : `ポスティング完了! 合計 +${formatCurrency(mission.reward)}`)
       : mission.type === "smallMission"
-        ? `小ミッション完了! +${formatCurrency(mission.reward)}`
+        ? (gameState.language === "en" ? `Small mission complete! +${formatCurrency(mission.reward)}` : `小ミッション完了! +${formatCurrency(mission.reward)}`)
       : mission.type === "special"
-        ? `危険ジョブ完了! +${formatCurrency(mission.reward)}`
+        ? (gameState.language === "en" ? `High-risk job complete! +${formatCurrency(mission.reward)}` : `危険ジョブ完了! +${formatCurrency(mission.reward)}`)
       : mission.type === "rescue"
-        ? `人質救出完了! +${formatCurrency(mission.reward)}`
+        ? (gameState.language === "en" ? `Hostage rescue complete! +${formatCurrency(mission.reward)}` : `人質救出完了! +${formatCurrency(mission.reward)}`)
       : mission.type === "cashout"
-        ? `現金護送完了! +${formatCurrency(mission.reward)}`
-      : `配達完了! +${formatCurrency(mission.reward)}`
+        ? (gameState.language === "en" ? `Cash escort complete! +${formatCurrency(mission.reward)}` : `現金護送完了! +${formatCurrency(mission.reward)}`)
+      : (gameState.language === "en" ? `Delivery complete! +${formatCurrency(mission.reward)}` : `配達完了! +${formatCurrency(mission.reward)}`)
   );
   showMissionCompleteBanner();
   AudioEngine.missionComplete();
@@ -4560,7 +5276,11 @@ function mountMissionVehicle() {
   updateVehicleApp();
   updateHUD();
   updateButtonState();
-  showToast(`任務用車両に乗車。${mission.entryPoint.name} へ急行せよ`);
+  showToast(
+    gameState.language === "en"
+      ? `Mission vehicle boarded. Rush to ${mission.entryPoint.name}.`
+      : `任務用車両に乗車。${mission.entryPoint.name} へ急行せよ`
+  );
   return true;
 }
 
@@ -5013,7 +5733,7 @@ function startInteriorMission() {
   interiorState.lives = interiorState.maxLives;
   updateVehicleApp();
   updateHUD();
-  showToast("マンションへ侵入。Space で射撃し、アタッシュケースを確保せよ");
+  showToast(gameState.language === "en" ? "Infiltrate the apartment. Shoot with Space and secure the briefcase." : "マンションへ侵入。Space で射撃し、アタッシュケースを確保せよ");
 }
 
 function finishInteriorMissionEscape() {
@@ -5032,7 +5752,11 @@ function finishInteriorMissionEscape() {
   inputState.fireHeld = false;
   updateCamera();
   updateHUD();
-  showToast(`脱出成功。${mission.returnPoint.name} にアタッシュケースを届けろ`);
+  showToast(
+    gameState.language === "en"
+      ? `Escape successful. Deliver the briefcase to ${mission.returnPoint.name}.`
+      : `脱出成功。${mission.returnPoint.name} にアタッシュケースを届けろ`
+  );
 }
 
 function updateMissionProgress(deltaTime = 0) {
@@ -5074,7 +5798,11 @@ function updateMissionProgress(deltaTime = 0) {
         mission.cashBagCollected = true;
         mission.cashoutCombat = createCashoutCombatState(player);
         updateHUD();
-        showToast(`現金を確保。${mission.bankPoint.name} へ急げ。被弾は一発アウト`);
+        showToast(
+          gameState.language === "en"
+            ? `Cash secured. Hurry to ${mission.bankPoint.name}. One hit fails the mission.`
+            : `現金を確保。${mission.bankPoint.name} へ急げ。被弾は一発アウト`
+        );
       }
     } else if (mission.stage === "cashoutBank" && mission.bankPoint) {
       const bankDistance = Math.hypot(player.x - mission.bankPoint.x, player.y - mission.bankPoint.y);
@@ -5099,7 +5827,7 @@ function updateMissionProgress(deltaTime = 0) {
       mission.hasBriefcase = true;
       mission.stage = "briefcaseEscape";
       updateHUD();
-      showToast("アタッシュケースを確保。出口へ急げ");
+      showToast(gameState.language === "en" ? "Briefcase secured. Head for the exit." : "アタッシュケースを確保。出口へ急げ");
     }
 
     if (
@@ -5177,36 +5905,40 @@ function updateHUD() {
   const selectedMeta = getJobTypeMeta(gameState.selectedJobType);
   const currentTimeOfDay = getTimeOfDay();
   const nextGoal = getNextVehicleGoal();
+  const stageLabel = UI_TEXT[mission.stage]?.[gameState.language] || UI_TEXT.idle[gameState.language];
   updateHousingUI();
   setTextContent(moneyLabel, formatCurrency(gameState.money));
   setTextContent(
     moneyGoalLabel,
     nextGoal
-      ? `次の目標: ${nextGoal.label} まで ${formatCurrency(Math.max(0, getVehiclePrice(nextGoal.id) - gameState.money))}`
-      : "最上位到達: すべての車を購入済み"
+      ? translate("uiGoalNext", {
+        label: nextGoal.label,
+        amount: formatCurrency(Math.max(0, getVehiclePrice(nextGoal.id) - gameState.money)),
+      })
+      : translate("uiGoalMax")
   );
-  setTextContent(timeOfDayLabel, currentTimeOfDay.label);
+  setTextContent(timeOfDayLabel, getLocalizedTimeOfDayLabel(currentTimeOfDay));
   setTextContent(timeDisplayLabel, formatGameTime(getCurrentGameMinutes()));
   setTextContent(
     missionStatusLabel,
     isTaxiJobActive()
-      ? (UI_TEXT[`taxi${taxiState.status.charAt(0).toUpperCase()}${taxiState.status.slice(1)}`] || "タクシー営業中")
-      : UI_TEXT[mission.stage]
+      ? (UI_TEXT[`taxi${taxiState.status.charAt(0).toUpperCase()}${taxiState.status.slice(1)}`]?.[gameState.language] || (gameState.language === "en" ? "Taxi shift" : "タクシー営業中"))
+      : stageLabel
   );
   setTextContent(foodPayLabel, formatJobPayLabel(ECONOMY.jobs.delivery));
   setTextContent(
     postingPayLabel,
-    selectedMeta.label === "ポスティング"
+    gameState.selectedJobType === "posting"
       ? selectedMeta.payLabel
       : formatJobPayLabel(ECONOMY.jobs.posting)
   );
   setTextContent(
     specialProgressLabel,
-    isOpsMissionActive() ? "作戦が進行中です" : "ジョブ一覧を確認中"
+    isOpsMissionActive() ? translate("uiSpecialInProgress") : translate("uiReviewJobList")
   );
   setTextContent(
     specialObjectiveLabel,
-    isOpsMissionActive() ? "作戦進行中" : "任務を開始してください"
+    isOpsMissionActive() ? translate("uiMissionInProgress") : translate("uiStartMission")
   );
   updateTaxiUI();
 
@@ -5215,207 +5947,211 @@ function updateHUD() {
     setTextContent(
       objectiveLabel,
       streamState && !streamState.complete
-        ? `配信中... 視聴者 ${streamState.viewers}人`
-        : "PCの前で E を押して配信を開始する"
+        ? translate("uiStreamWatching", { viewers: streamState.viewers })
+        : translate("uiStreamStartAtPc")
     );
     setTextContent(
       currentTargetLabel,
       streamState?.complete
-        ? `収益 ${streamState.liveLabel}`
+        ? translate("uiStreamRevenue", { amount: streamState.liveLabel })
         : streamState
-          ? "配信進行中"
-          : "PCまたは出口へ"
+          ? translate("uiStreamRunning")
+          : translate("uiPcOrExit")
     );
     return;
   }
 
   if (isTaxiJobActive()) {
     if (taxiState.status === "searchingPassenger" && taxiState.passenger) {
-      setTextContent(objectiveLabel, `${taxiState.passenger.name} で乗客を拾う`);
-      setTextContent(currentTargetLabel, `乗客へ向かう: ${taxiState.passenger.name}`);
+      setTextContent(objectiveLabel, translate("uiTaxiPickupPassenger", { name: taxiState.passenger.name }));
+      setTextContent(currentTargetLabel, translate("uiTaxiPickupTarget", { name: taxiState.passenger.name }));
       return;
     }
     if ((taxiState.status === "passengerOnBoard" || taxiState.status === "delivering") && taxiState.destination) {
-      setTextContent(objectiveLabel, `${taxiState.destination.name} まで送迎する`);
-      setTextContent(currentTargetLabel, `送迎先: ${taxiState.destination.name}`);
+      setTextContent(objectiveLabel, translate("uiTaxiDeliverPassenger", { name: taxiState.destination.name }));
+      setTextContent(currentTargetLabel, translate("uiTaxiDestinationTarget", { name: taxiState.destination.name }));
       return;
     }
   }
 
   if (mission.stage === "pickup" && mission.pickupPoint) {
-    setTextContent(objectiveLabel, `${mission.pickupPoint.name} で商品を受け取る`);
-    setTextContent(currentTargetLabel, `受取先へ向かう: ${mission.pickupPoint.name}`);
-    setTextContent(foodObjectiveLabel, `${mission.pickupPoint.name} で商品を受け取る`);
-    setTextContent(foodProgressLabel, `配達報酬 ${formatCurrency(mission.reward)}`);
-    setTextContent(postingObjectiveLabel, "Foodデリバリー実行中");
-    setTextContent(postingProgressLabel, "ホームに戻ると他アプリを確認できます");
+    setTextContent(objectiveLabel, translate("uiPickupItem", { name: mission.pickupPoint.name }));
+    setTextContent(currentTargetLabel, translate("uiPickupTarget", { name: mission.pickupPoint.name }));
+    setTextContent(foodObjectiveLabel, translate("uiPickupItem", { name: mission.pickupPoint.name }));
+    setTextContent(foodProgressLabel, translate("uiDeliveryReward", { reward: formatCurrency(mission.reward) }));
+    setTextContent(postingObjectiveLabel, translate("uiDeliveryAppActive"));
+    setTextContent(postingProgressLabel, translate("uiOpenOtherApps"));
     return;
   }
 
   if (mission.stage === "delivery" && mission.deliveryPoint) {
-    setTextContent(objectiveLabel, `${mission.deliveryPoint.name} に届ける`);
-    setTextContent(currentTargetLabel, `届け先へ向かう: ${mission.deliveryPoint.name}`);
-    setTextContent(foodObjectiveLabel, `${mission.deliveryPoint.name} に届ける`);
-    setTextContent(foodProgressLabel, `配達報酬 ${formatCurrency(mission.reward)}`);
-    setTextContent(postingObjectiveLabel, "Foodデリバリー実行中");
-    setTextContent(postingProgressLabel, "別アプリへの切り替えは現在停止中");
+    setTextContent(objectiveLabel, translate("uiDeliveryTo", { name: mission.deliveryPoint.name }));
+    setTextContent(currentTargetLabel, translate("uiDeliveryTarget", { name: mission.deliveryPoint.name }));
+    setTextContent(foodObjectiveLabel, translate("uiDeliveryTo", { name: mission.deliveryPoint.name }));
+    setTextContent(foodProgressLabel, translate("uiDeliveryReward", { reward: formatCurrency(mission.reward) }));
+    setTextContent(postingObjectiveLabel, translate("uiDeliveryAppActive"));
+    setTextContent(postingProgressLabel, translate("uiAppSwitchLocked"));
     return;
   }
 
   if (mission.stage === "smallMissionPickup" && mission.pickupPoint) {
-    setTextContent(objectiveLabel, `${mission.pickupPoint.name} で依頼品を回収する`);
-    setTextContent(currentTargetLabel, `回収先: ${mission.pickupPoint.name}`);
-    setTextContent(foodObjectiveLabel, "小ミッション実行中");
-    setTextContent(foodProgressLabel, `報酬 ${formatCurrency(mission.reward)} ・ 低リスクの中間案件`);
-    setTextContent(postingObjectiveLabel, `${mission.pickupPoint.name} で依頼品を受け取る`);
-    setTextContent(postingProgressLabel, "回収後に受け渡し先へ向かう");
-    setTextContent(specialObjectiveLabel, `${mission.pickupPoint.name} で回収`);
-    setTextContent(specialProgressLabel, `報酬 ${formatCurrency(mission.reward)} ・ ${ECONOMY.jobs.smallMission.role}`);
+    setTextContent(objectiveLabel, translate("uiSmallMissionPickup", { name: mission.pickupPoint.name }));
+    setTextContent(currentTargetLabel, translate("uiSmallMissionPickupTarget", { name: mission.pickupPoint.name }));
+    setTextContent(foodObjectiveLabel, translate("uiSmallMissionRunning"));
+    setTextContent(foodProgressLabel, translate("uiLowRiskJob", { reward: formatCurrency(mission.reward) }));
+    setTextContent(postingObjectiveLabel, translate("uiSmallMissionReceiveAt", { name: mission.pickupPoint.name }));
+    setTextContent(postingProgressLabel, translate("uiReturnAfterPickup"));
+    setTextContent(specialObjectiveLabel, translate("uiRecoverAt", { name: mission.pickupPoint.name }));
+    setTextContent(specialProgressLabel, translate("uiLowRiskJob", { reward: formatCurrency(mission.reward) }));
     return;
   }
 
   if (mission.stage === "smallMissionDelivery" && mission.deliveryPoint) {
-    setTextContent(objectiveLabel, `${mission.deliveryPoint.name} に依頼品を届ける`);
-    setTextContent(currentTargetLabel, `受け渡し先: ${mission.deliveryPoint.name}`);
-    setTextContent(foodObjectiveLabel, "小ミッション実行中");
-    setTextContent(foodProgressLabel, `報酬 ${formatCurrency(mission.reward)} ・ 受け渡し中`);
-    setTextContent(postingObjectiveLabel, `${mission.deliveryPoint.name} に依頼品を届ける`);
-    setTextContent(postingProgressLabel, "納品でまとまった報酬を獲得");
-    setTextContent(specialObjectiveLabel, `${mission.deliveryPoint.name} に届ける`);
-    setTextContent(specialProgressLabel, `報酬 ${formatCurrency(mission.reward)} ・ 中間ジョブ`);
+    setTextContent(objectiveLabel, translate("uiDeliverRequestItem", { name: mission.deliveryPoint.name }));
+    setTextContent(currentTargetLabel, translate("uiHandoffTarget", { name: mission.deliveryPoint.name }));
+    setTextContent(foodObjectiveLabel, translate("uiSmallMissionRunning"));
+    setTextContent(foodProgressLabel, translate("uiSmallMissionDelivering", { reward: formatCurrency(mission.reward) }));
+    setTextContent(postingObjectiveLabel, translate("uiDeliverRequestItem", { name: mission.deliveryPoint.name }));
+    setTextContent(postingProgressLabel, translate("uiDeliveryBigReward"));
+    setTextContent(specialObjectiveLabel, translate("uiDeliveryTo", { name: mission.deliveryPoint.name }));
+    setTextContent(specialProgressLabel, translate("uiMidTierJob", { reward: formatCurrency(mission.reward) }));
     return;
   }
 
   if (mission.stage === "cashoutPickup" && mission.pickupPoint) {
-    setTextContent(objectiveLabel, `${mission.pickupPoint.name} で現金を回収する`);
-    setTextContent(currentTargetLabel, `現金回収地点: ${mission.pickupPoint.name}`);
-    setTextContent(foodObjectiveLabel, "特別業務を実行中");
-    setTextContent(foodProgressLabel, `報酬 ${formatCurrency(mission.reward)} ・ 武装妨害あり`);
-    setTextContent(postingObjectiveLabel, `${mission.pickupPoint.name} で現金を確保する`);
-    setTextContent(postingProgressLabel, "回収後に銀行まで護送");
-    setTextContent(specialObjectiveLabel, `${mission.pickupPoint.name} で現金を回収`);
-    setTextContent(specialProgressLabel, `報酬 ${formatCurrency(mission.reward)} ・ 回収後に襲撃発生`);
+    setTextContent(objectiveLabel, translate("uiCashPickup", { name: mission.pickupPoint.name }));
+    setTextContent(currentTargetLabel, translate("uiCashPickupTarget", { name: mission.pickupPoint.name }));
+    setTextContent(foodObjectiveLabel, translate("uiSpecialOpsActive"));
+    setTextContent(foodProgressLabel, translate("uiArmedInterference", { reward: formatCurrency(mission.reward) }));
+    setTextContent(postingObjectiveLabel, translate("uiSecureCashAt", { name: mission.pickupPoint.name }));
+    setTextContent(postingProgressLabel, translate("uiEscortToBank"));
+    setTextContent(specialObjectiveLabel, translate("uiRecoverCashAt", { name: mission.pickupPoint.name }));
+    setTextContent(specialProgressLabel, translate("uiAmbushAfterPickup", { reward: formatCurrency(mission.reward) }));
     return;
   }
 
   if (mission.stage === "cashoutBank" && mission.bankPoint) {
-    setTextContent(objectiveLabel, `${mission.bankPoint.name} まで現金を運ぶ`);
-    setTextContent(currentTargetLabel, `銀行へ護送: ${mission.bankPoint.name}`);
-    setTextContent(foodObjectiveLabel, "特別業務を実行中");
-    setTextContent(foodProgressLabel, "被弾一発で失敗 / Space で応戦");
-    setTextContent(postingObjectiveLabel, `${mission.bankPoint.name} に現金を届ける`);
-    setTextContent(postingProgressLabel, "武装妨害を排除しながら銀行へ");
-    setTextContent(specialObjectiveLabel, `${mission.bankPoint.name} に護送する`);
-    setTextContent(specialProgressLabel, "被弾一発で失敗 / Space で射撃");
+    setTextContent(objectiveLabel, translate("uiCarryCashToBank", { name: mission.bankPoint.name }));
+    setTextContent(currentTargetLabel, translate("uiBankEscortTarget", { name: mission.bankPoint.name }));
+    setTextContent(foodObjectiveLabel, translate("uiSpecialOpsActive"));
+    setTextContent(foodProgressLabel, translate("uiOneHitFail"));
+    setTextContent(postingObjectiveLabel, translate("uiDeliverCashTo", { name: mission.bankPoint.name }));
+    setTextContent(postingProgressLabel, translate("uiFightToBank"));
+    setTextContent(specialObjectiveLabel, translate("uiEscortTo", { name: mission.bankPoint.name }));
+    setTextContent(specialProgressLabel, translate("uiOneHitFailShoot"));
     return;
   }
 
   if (mission.stage === "posting" && mission.stops[mission.currentStopIndex]) {
     const currentStop = mission.stops[mission.currentStopIndex];
-    const stopLabel = currentStop.targetType === "home" ? "住宅" : "店舗";
-    setTextContent(objectiveLabel, `${currentStop.name} にチラシを投函する`);
-    setTextContent(currentTargetLabel, `${stopLabel}へ向かう: ${currentStop.name}`);
-    setTextContent(postingPayLabel, `1軒 +${formatCurrency(mission.perStopReward)} / 合計 ${formatCurrency(mission.reward)}`);
-    setTextContent(postingObjectiveLabel, `${currentStop.name} にチラシを投函する`);
+    const stopLabel = currentStop.targetType === "home" ? translate("uiHomeKind") : translate("uiShopKind");
+    setTextContent(objectiveLabel, translate("uiFlyerDropAt", { name: currentStop.name }));
+    setTextContent(currentTargetLabel, translate("uiFlyerTarget", { kind: stopLabel, name: currentStop.name }));
+    setTextContent(postingPayLabel, translate("uiPostingPay", { perStop: formatCurrency(mission.perStopReward), reward: formatCurrency(mission.reward) }));
+    setTextContent(postingObjectiveLabel, translate("uiFlyerDropAt", { name: currentStop.name }));
     setTextContent(
       postingProgressLabel,
-      `${mission.currentStopIndex}/${mission.stops.length}件完了 ・ 次は${stopLabel}`
+      translate("uiPostingProgress", {
+        current: mission.currentStopIndex,
+        total: mission.stops.length,
+        stop: stopLabel,
+      })
     );
-    setTextContent(foodObjectiveLabel, "ポスティング実行中");
-    setTextContent(foodProgressLabel, "別アプリへの切り替えは現在停止中");
+    setTextContent(foodObjectiveLabel, translate("uiPostingAppActive"));
+    setTextContent(foodProgressLabel, translate("uiAppSwitchLocked"));
     return;
   }
 
   if (mission.stage === "complete") {
-    setTextContent(objectiveLabel, `報酬 ${formatCurrency(mission.reward)} を獲得`);
-    setTextContent(currentTargetLabel, "仕事完了");
-    setTextContent(foodObjectiveLabel, `報酬 ${formatCurrency(mission.reward)} を獲得`);
-    setTextContent(foodProgressLabel, "次の配達を開始できます");
-    setTextContent(postingObjectiveLabel, `報酬 ${formatCurrency(mission.reward)} を獲得`);
-    setTextContent(postingProgressLabel, "次のポスティングを開始できます");
-    setTextContent(specialObjectiveLabel, `報酬 ${formatCurrency(mission.reward)} を獲得`);
-    setTextContent(specialProgressLabel, "次の特別業務を開始できます");
+    setTextContent(objectiveLabel, translate("uiRewardEarned", { reward: formatCurrency(mission.reward) }));
+    setTextContent(currentTargetLabel, translate("uiJobComplete"));
+    setTextContent(foodObjectiveLabel, translate("uiRewardEarned", { reward: formatCurrency(mission.reward) }));
+    setTextContent(foodProgressLabel, translate("uiNextDelivery"));
+    setTextContent(postingObjectiveLabel, translate("uiRewardEarned", { reward: formatCurrency(mission.reward) }));
+    setTextContent(postingProgressLabel, translate("uiNextPosting"));
+    setTextContent(specialObjectiveLabel, translate("uiRewardEarned", { reward: formatCurrency(mission.reward) }));
+    setTextContent(specialProgressLabel, translate("uiNextSpecial"));
     return;
   }
 
   if ((mission.stage === "vanSpawned" || mission.stage === "playerNearVan" || mission.stage === "hacking") && mission.rescueVan) {
-    setTextContent(objectiveLabel, "発光する護送車へ近づきハッキングを仕掛ける");
-    setTextContent(currentTargetLabel, "護送車を追跡");
-    setTextContent(foodObjectiveLabel, "特別業務を実行中");
-    setTextContent(foodProgressLabel, "護送車の通信圏内へ接近");
-    setTextContent(postingObjectiveLabel, "護送車を追跡する");
-    setTextContent(postingProgressLabel, mission.stage === "hacking" ? "スロット侵入を実行中" : "近づくと侵入UIが開く");
-    setTextContent(specialObjectiveLabel, "護送車を止めずにロックを解除する");
-    setTextContent(specialProgressLabel, `報酬 ${formatCurrency(mission.reward)} ・ 通信圏への接近が必要`);
+    setTextContent(objectiveLabel, translate("uiApproachVanHack"));
+    setTextContent(currentTargetLabel, translate("uiRescueChase"));
+    setTextContent(foodObjectiveLabel, translate("uiSpecialOpsActive"));
+    setTextContent(foodProgressLabel, translate("uiRescueApproach"));
+    setTextContent(postingObjectiveLabel, translate("uiRescueTrack"));
+    setTextContent(postingProgressLabel, mission.stage === "hacking" ? translate("uiRescueHackRunning") : translate("uiRescueHackOpen"));
+    setTextContent(specialObjectiveLabel, translate("uiRescueUnlock"));
+    setTextContent(specialProgressLabel, translate("uiRescueRewardNeedRange", { reward: formatCurrency(mission.reward) }));
     return;
   }
 
   if ((mission.stage === "hostageFreed" || mission.stage === "rewardReady") && mission.hostage) {
-    setTextContent(objectiveLabel, "解放した人質に近づいて報酬を受け取る");
-    setTextContent(currentTargetLabel, "人質を保護");
-    setTextContent(foodObjectiveLabel, "特別業務を実行中");
-    setTextContent(foodProgressLabel, "人質を確保済み");
-    setTextContent(postingObjectiveLabel, "人質に話しかける");
-    setTextContent(postingProgressLabel, "Eで会話すると報酬を受領");
-    setTextContent(specialObjectiveLabel, "人質から報酬を受け取る");
-    setTextContent(specialProgressLabel, `報酬 ${formatCurrency(mission.reward)} ・ 護送車ロック解除済み`);
+    setTextContent(objectiveLabel, translate("uiApproachFreedHostage"));
+    setTextContent(currentTargetLabel, translate("uiHostageSafe"));
+    setTextContent(foodObjectiveLabel, translate("uiSpecialOpsActive"));
+    setTextContent(foodProgressLabel, translate("uiHostageSecured"));
+    setTextContent(postingObjectiveLabel, translate("uiTalkToHostage"));
+    setTextContent(postingProgressLabel, translate("uiPressEForReward"));
+    setTextContent(specialObjectiveLabel, gameState.language === "en" ? "Claim the hostage reward" : "人質から報酬を受け取る");
+    setTextContent(specialProgressLabel, translate("uiRescueRewardDone", { reward: formatCurrency(mission.reward) }));
     return;
   }
 
   if (mission.stage === "briefcaseVehicle" && mission.vehiclePoint) {
-    setTextContent(objectiveLabel, "近くに出現した任務用車両へ向かう");
-    setTextContent(currentTargetLabel, "任務用車両に乗り込む");
-    setTextContent(foodObjectiveLabel, "特別業務を実行中");
-    setTextContent(foodProgressLabel, "別アプリへの切り替えは現在停止中");
-    setTextContent(postingObjectiveLabel, "特別業務を実行中");
-    setTextContent(postingProgressLabel, "任務車両への乗車待ち");
-    setTextContent(specialObjectiveLabel, "近くの任務用車両に乗り込む");
-    setTextContent(specialProgressLabel, `報酬 ${formatCurrency(mission.reward)} ・ 高速車両を確保`);
+    setTextContent(objectiveLabel, translate("uiHeadToMissionVehicle"));
+    setTextContent(currentTargetLabel, translate("uiBoardMissionVehicle"));
+    setTextContent(foodObjectiveLabel, translate("uiSpecialOpsActive"));
+    setTextContent(foodProgressLabel, translate("uiAppSwitchLocked"));
+    setTextContent(postingObjectiveLabel, translate("uiSpecialOpsActive"));
+    setTextContent(postingProgressLabel, translate("uiMissionVehicleWait"));
+    setTextContent(specialObjectiveLabel, gameState.language === "en" ? "Board the nearby mission vehicle" : "近くの任務用車両に乗り込む");
+    setTextContent(specialProgressLabel, translate("uiSecureFastVehicle", { reward: formatCurrency(mission.reward) }));
     return;
   }
 
   if ((mission.stage === "briefcaseDrive" || mission.stage === "briefcaseInfiltration") && mission.entryPoint) {
-    setTextContent(objectiveLabel, `${mission.entryPoint.name} の光る侵入地点へ向かう`);
-    setTextContent(currentTargetLabel, `潜入地点: ${mission.entryPoint.name}`);
-    setTextContent(foodObjectiveLabel, "特別業務を実行中");
-    setTextContent(foodProgressLabel, "マンション潜入の準備中");
-    setTextContent(postingObjectiveLabel, "特別業務を実行中");
-    setTextContent(postingProgressLabel, "指定地点に入ると屋内へ切り替え");
-    setTextContent(specialObjectiveLabel, `${mission.entryPoint.name} に潜入する`);
-    setTextContent(specialProgressLabel, "光る地点で屋内戦闘へ移行");
+    setTextContent(objectiveLabel, translate("uiHeadToEntryGlow", { name: mission.entryPoint.name }));
+    setTextContent(currentTargetLabel, translate("uiInfiltrationPoint", { name: mission.entryPoint.name }));
+    setTextContent(foodObjectiveLabel, translate("uiSpecialOpsActive"));
+    setTextContent(foodProgressLabel, translate("uiApartmentPrep"));
+    setTextContent(postingObjectiveLabel, translate("uiSpecialOpsActive"));
+    setTextContent(postingProgressLabel, translate("uiInteriorShift"));
+    setTextContent(specialObjectiveLabel, translate("uiInfiltrateAt", { name: mission.entryPoint.name }));
+    setTextContent(specialProgressLabel, gameState.language === "en" ? "Reach the glowing point to enter the interior fight" : "光る地点で屋内戦闘へ移行");
     return;
   }
 
   if (mission.stage === "briefcaseEscape" && isInteriorMode()) {
-    setTextContent(objectiveLabel, "アタッシュケースを持って出口へ脱出する");
-    setTextContent(currentTargetLabel, "屋内出口へ向かう");
-    setTextContent(specialObjectiveLabel, "アタッシュケースを持って脱出");
-    setTextContent(specialProgressLabel, "Space で射撃しながら出口へ");
+    setTextContent(objectiveLabel, translate("uiEscapeWithBriefcase"));
+    setTextContent(currentTargetLabel, translate("uiHeadToExitInside"));
+    setTextContent(specialObjectiveLabel, gameState.language === "en" ? "Escape with the briefcase" : "アタッシュケースを持って脱出");
+    setTextContent(specialProgressLabel, translate("uiFightToExit"));
     return;
   }
 
   if (mission.stage === "briefcaseReturn" && mission.returnPoint) {
-    setTextContent(objectiveLabel, `${mission.returnPoint.name} にアタッシュケースを届ける`);
-    setTextContent(currentTargetLabel, `受渡し地点: ${mission.returnPoint.name}`);
-    setTextContent(foodObjectiveLabel, "特別業務を実行中");
-    setTextContent(foodProgressLabel, "ケースを持って受渡し地点へ");
-    setTextContent(postingObjectiveLabel, "特別業務を実行中");
-    setTextContent(postingProgressLabel, "納品でミッション完了");
-    setTextContent(specialObjectiveLabel, `${mission.returnPoint.name} に届ける`);
-    setTextContent(specialProgressLabel, `報酬 ${formatCurrency(mission.reward)} ・ ケース確保済み`);
+    setTextContent(objectiveLabel, translate("uiDeliverBriefcaseTo", { name: mission.returnPoint.name }));
+    setTextContent(currentTargetLabel, translate("uiDropoffPoint", { name: mission.returnPoint.name }));
+    setTextContent(foodObjectiveLabel, translate("uiSpecialOpsActive"));
+    setTextContent(foodProgressLabel, translate("uiCarryCaseToDropoff"));
+    setTextContent(postingObjectiveLabel, translate("uiSpecialOpsActive"));
+    setTextContent(postingProgressLabel, translate("uiMissionClearOnDelivery"));
+    setTextContent(specialObjectiveLabel, translate("uiDeliveryTo", { name: mission.returnPoint.name }));
+    setTextContent(specialProgressLabel, translate("uiCaseSecured", { reward: formatCurrency(mission.reward) }));
     return;
   }
 
-  setTextContent(objectiveLabel, "右下のスマホで依頼を受けてください");
-  setTextContent(currentTargetLabel, "依頼を受けてください");
+  setTextContent(objectiveLabel, translate("uiOpenPhonePrompt"));
+  setTextContent(currentTargetLabel, translate("uiAcceptRequest"));
   setTextContent(foodPayLabel, formatJobPayLabel(ECONOMY.jobs.delivery));
-  setTextContent(foodObjectiveLabel, "依頼を受けてください");
-  setTextContent(foodProgressLabel, "店舗で受取して家へ届けます");
+  setTextContent(foodObjectiveLabel, translate("uiAcceptRequest"));
+  setTextContent(foodProgressLabel, translate("uiFoodProgressDefault"));
   setTextContent(postingPayLabel, formatJobPayLabel(ECONOMY.jobs.posting));
-  setTextContent(postingObjectiveLabel, "依頼を受けてください");
-  setTextContent(postingProgressLabel, "ホーム画面から仕事を選択");
-  setTextContent(specialObjectiveLabel, "任務を開始してください");
-  setTextContent(specialProgressLabel, "ジョブ一覧を確認中");
+  setTextContent(postingObjectiveLabel, translate("uiAcceptRequest"));
+  setTextContent(postingProgressLabel, translate("uiPostingProgressDefault"));
+  setTextContent(specialObjectiveLabel, translate("uiStartMission"));
+  setTextContent(specialProgressLabel, translate("uiReviewJobList"));
 }
 
 function getCurrentMissionTarget() {
@@ -9555,10 +10291,20 @@ if (hackStopButton) {
 if (accountButton) {
   accountButton.addEventListener("click", () => setAccountOverlayOpen(true));
 }
+if (accountLangButton) {
+  accountLangButton.addEventListener("click", () => {
+    setLanguage(gameState.language === "en" ? "ja" : "en");
+  });
+}
+if (hudLangButton) {
+  hudLangButton.addEventListener("click", () => {
+    setLanguage(gameState.language === "en" ? "ja" : "en");
+  });
+}
 if (closeAccountButton) {
   closeAccountButton.addEventListener("click", () => {
     if (isAuthRequired()) {
-      showToast("遊ぶには先に新規登録またはログインが必要です");
+      showToast(gameState.language === "en" ? "Please sign up or log in before playing" : "遊ぶには先に新規登録またはログインが必要です");
       setAccountOverlayOpen(true);
       return;
     }
@@ -9579,7 +10325,7 @@ if (accountLogoutButton) {
       clearAuthSession();
       updateAccountUi();
     }
-    showToast("ログアウトしました");
+    showToast(gameState.language === "en" ? "Logged out" : "ログアウトしました");
   });
 }
 
@@ -9587,7 +10333,7 @@ window.addEventListener("keydown", (event) => {
   if (gameState.isAccountOverlayOpen && event.code === "Escape") {
     event.preventDefault();
     if (isAuthRequired()) {
-      showToast("遊ぶには先に新規登録またはログインが必要です");
+      showToast(gameState.language === "en" ? "Please sign up or log in before playing" : "遊ぶには先に新規登録またはログインが必要です");
       return;
     }
     setAccountOverlayOpen(false);
@@ -9713,7 +10459,7 @@ if (soundToggleBtn) {
   soundToggleBtn.addEventListener("click", () => {
     const muted = AudioEngine.toggleMute();
     soundToggleBtn.textContent = muted ? "🔇" : "🔊";
-    soundToggleBtn.title = muted ? "ミュート中 (クリックで解除)" : "サウンドON (クリックでミュート)";
+    soundToggleBtn.title = muted ? translate("soundOffTitle") : translate("soundOnTitle");
   });
 }
 
@@ -9886,8 +10632,9 @@ if (closeWorldMapButton) {
   }, { passive: false });
 }());
 
+setLanguage(gameState.language, { persist: false });
 render();
 if (_didLoadSave) {
-  window.setTimeout(() => showToast("セーブデータを読み込みました"), 400);
+  window.setTimeout(() => showToast(gameState.language === "en" ? "Save data loaded" : "セーブデータを読み込みました"), 400);
 }
 window.requestAnimationFrame(gameLoop);
