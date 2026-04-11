@@ -515,11 +515,21 @@ function applySupabaseSession(session) {
   updateAccountUi();
   renderPremiumShop();
   if (gameState.cloud.token) {
+    setAccountOverlayOpen(false);
     handlePaymentReturnIfNeeded();
+  } else if (gameState.cloud.isReady) {
+    setAccountOverlayOpen(true);
   }
 }
 
+function isAuthRequired() {
+  return !gameState.cloud.token;
+}
+
 function setAccountOverlayOpen(open) {
+  if (!open && isAuthRequired()) {
+    open = true;
+  }
   gameState.isAccountOverlayOpen = open;
   if (open) {
     toggleDebugPanel(false);
@@ -561,7 +571,7 @@ function updateAccountUi() {
   } else {
     setAccountStatus(
       gameState.cloud.isReady
-        ? "初めてなら新規登録、登録済みならログインを選んでください。"
+        ? "このゲームは登録またはログインが必要です。メールアドレスで続けてください。"
       : "Supabase を初期化しています。"
     );
   }
@@ -9585,7 +9595,14 @@ if (accountButton) {
   accountButton.addEventListener("click", () => setAccountOverlayOpen(true));
 }
 if (closeAccountButton) {
-  closeAccountButton.addEventListener("click", () => setAccountOverlayOpen(false));
+  closeAccountButton.addEventListener("click", () => {
+    if (isAuthRequired()) {
+      showToast("遊ぶには先に新規登録またはログインが必要です");
+      setAccountOverlayOpen(true);
+      return;
+    }
+    setAccountOverlayOpen(false);
+  });
 }
 if (accountLoginButton) {
   accountLoginButton.addEventListener("click", () => submitAccountForm("login"));
@@ -9608,6 +9625,10 @@ if (accountLogoutButton) {
 window.addEventListener("keydown", (event) => {
   if (gameState.isAccountOverlayOpen && event.code === "Escape") {
     event.preventDefault();
+    if (isAuthRequired()) {
+      showToast("遊ぶには先に新規登録またはログインが必要です");
+      return;
+    }
     setAccountOverlayOpen(false);
     return;
   }
