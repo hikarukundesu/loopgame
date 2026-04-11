@@ -108,10 +108,17 @@ DATABASE_URL=postgresql://loopgame_user:強いパスワード@localhost:5432/loo
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_ANON_KEY=あなたのanonキー
 SUPABASE_SERVICE_ROLE_KEY=あなたのservice_roleキー
+APP_BASE_URL=https://あなたのドメイン
+STRIPE_SECRET_KEY=sk_live_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+STRIPE_PRICE_STARTER=price_xxx
+STRIPE_PRICE_BOOST=price_xxx
+STRIPE_PRICE_VAULT=price_xxx
 PORT=3000
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` はサーバー側だけで使います。公開しないでください。
+Stripe を本番化する場合は、テスト用の `sk_test_...` / `whsec_...` / `price_...` ではなく、本番モードで作成した値を入れます。
 
 ## 10. アプリを起動する
 
@@ -171,6 +178,7 @@ pm2 startup
 - 保存データは PostgreSQL に保存する
 - ログインだけ Supabase Auth を使う
 - カード情報は自前で持たない
+- 課金額はコード直書きではなく Stripe Dashboard の `Price ID` で管理する
 
 ## 14. 最後にやること
 
@@ -178,7 +186,8 @@ pm2 startup
 - SSL は Let’s Encrypt で入れる
 - DB の定期バックアップを設定する
 - Supabase 側のメール確認設定を確認する
-- Stripe webhook の署名検証を入れる
+- Stripe Dashboard の webhook 送信先を `https://あなたのドメイン/api/stripe/webhook` にする
+- webhook イベントは `checkout.session.completed` と `checkout.session.async_payment_succeeded` を有効にする
 
 ## 困ったとき
 

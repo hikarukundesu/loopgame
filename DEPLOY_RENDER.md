@@ -19,6 +19,9 @@
 - `GET /api/auth/me`
 - `GET /api/save`
 - `PUT /api/save`
+- `POST /api/payments/checkout`
+- `POST /api/payments/confirm`
+- `POST /api/stripe/webhook`
 
 ## Render setup
 
@@ -27,12 +30,22 @@
 3. Confirm the `loopgame` web service and `loopgame-db` PostgreSQL database.
 4. Deploy.
 
+Set these environment variables before enabling live payments:
+
+- `APP_BASE_URL`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PRICE_STARTER`
+- `STRIPE_PRICE_BOOST`
+- `STRIPE_PRICE_VAULT`
+
 ## Notes
 
 - The frontend keeps `localStorage` save data as a local fallback.
 - After Supabase login, the game loads the user's cloud save if one exists.
 - Future saves are written locally and synced to the API automatically.
 - Save data is stored in PostgreSQL, while authentication is delegated to Supabase.
+- Stripe Checkout now expects dashboard-managed live `Price ID` values instead of inline `price_data`.
 
 ## Recommended next steps before release
 

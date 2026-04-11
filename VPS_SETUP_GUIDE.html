@@ -239,8 +239,15 @@ GRANT ALL PRIVILEGES ON DATABASE loopgame TO loopgame_user;
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_ANON_KEY=あなたのanonキー
 SUPABASE_SERVICE_ROLE_KEY=あなたのservice_roleキー
+APP_BASE_URL=https://あなたのドメイン
+STRIPE_SECRET_KEY=sk_live_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+STRIPE_PRICE_STARTER=price_xxx
+STRIPE_PRICE_BOOST=price_xxx
+STRIPE_PRICE_VAULT=price_xxx
 PORT=3000</code></pre>
         <p><code>SUPABASE_SERVICE_ROLE_KEY</code> はサーバー側だけで使います。公開しないでください。</p>
+        <p>Stripe を本番化する場合は、テスト用ではなく本番モードで作成した key / webhook secret / Price ID を設定します。</p>
       </div>
 
       <h2>10. アプリを起動する</h2>
@@ -295,6 +302,7 @@ pm2 startup</code></pre>
           <li>保存データは PostgreSQL に保存する</li>
           <li>ログインだけ Supabase Auth を使う</li>
           <li>カード情報は自前で持たない</li>
+          <li>課金額はコード直書きではなく Stripe Dashboard の Price ID で管理する</li>
         </ul>
       </div>
 
@@ -304,7 +312,8 @@ pm2 startup</code></pre>
         <li>SSL は Let’s Encrypt で入れる</li>
         <li>DB の定期バックアップを設定する</li>
         <li>Supabase 側のメール確認設定を確認する</li>
-        <li>Stripe webhook の署名検証を入れる</li>
+        <li>Stripe Dashboard の webhook 送信先を <code>https://あなたのドメイン/api/stripe/webhook</code> にする</li>
+        <li>webhook イベントは <code>checkout.session.completed</code> と <code>checkout.session.async_payment_succeeded</code> を有効にする</li>
       </ul>
 
       <div class="panel note">

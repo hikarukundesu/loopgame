@@ -12,6 +12,11 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
 const APP_BASE_URL = process.env.APP_BASE_URL || "";
+const STRIPE_PRICE_IDS = {
+  starter: process.env.STRIPE_PRICE_STARTER || "",
+  boost: process.env.STRIPE_PRICE_BOOST || "",
+  vault: process.env.STRIPE_PRICE_VAULT || "",
+};
 
 const PREMIUM_PACKS = [
   {
@@ -63,11 +68,41 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 });
 
 function getPremiumPack(packId) {
-  return PREMIUM_PACKS.find((pack) => pack.id === packId) || null;
+  const pack = PREMIUM_PACKS.find((entry) => entry.id === packId) || null;
+  if (!pack) {
+    return null;
+  }
+  return {
+    ...pack,
+    stripePriceId: STRIPE_PRICE_IDS[pack.id] || "",
+  };
+}
+
+function getStripeConfigErrors({ requireWebhook = false } = {}) {
+  const errors = [];
+  if (!stripe) {
+    errors.push("STRIPE_SECRET_KEY");
+  }
+  if (!APP_BASE_URL) {
+    errors.push("APP_BASE_URL");
+  }
+  for (const pack of PREMIUM_PACKS) {
+    if (!STRIPE_PRICE_IDS[pack.id]) {
+      errors.push(`STRIPE_PRICE_${pack.id.toUpperCase()}`);
+    }
+  }
+  if (requireWebhook && !STRIPE_WEBHOOK_SECRET) {
+    errors.push("STRIPE_WEBHOOK_SECRET");
+  }
+  return errors;
 }
 
 function isStripeReady() {
-  return Boolean(stripe);
+  return getStripeConfigErrors().length === 0;
+}
+
+function isStripeWebhookReady() {
+  return getStripeConfigErrors({ requireWebhook: true }).length === 0;
 }
 
 function createDefaultSaveData(initialMoney = 0) {
@@ -328,14 +363,17 @@ function getBaseUrl(req) {
 
 function requireStripeReady(res) {
   if (!isStripeReady()) {
-    res.status(503).json({ error: "Stripe is not configured on the server" });
+    const missing = getStripeConfigErrors();
+    res.status(503).json({
+      error: `Stripe is not configured on the server: ${missing.join(", ")}`,
+    });
     return false;
   }
   return true;
 }
 
 app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req, res) => {
-  if (!isStripeReady() || !STRIPE_WEBHOOK_SECRET) {
+  if (!isStripeWebhookReady()) {
     return res.status(404).send("Webhook is not configured");
   }
 
@@ -497,14 +535,7 @@ app.post("/api/payments/checkout", authMiddleware, async (req, res) => {
       line_items: [
         {
           quantity: 1,
-          price_data: {
-            currency: "jpy",
-            unit_amount: pack.priceJpy,
-            product_data: {
-              name: `${pack.name} / ${pack.moneyAmount} Money`,
-              description: pack.description,
-            },
-          },
+          price: pack.stripePriceId,
         },
       ],
     });
@@ -595,6 +626,10 @@ app.get("*", (_req, res) => {
 
 ensureSchema()
   .then(() => {
+    const stripeWarnings = getStripeConfigErrors({ requireWebhook: true });
+    if (stripeWarnings.length > 0) {
+      console.warn(`Stripe production config incomplete: ${stripeWarnings.join(", ")}`);
+    }
     app.listen(PORT, () => {
       console.log(`Loopgame server listening on ${PORT}`);
     });
